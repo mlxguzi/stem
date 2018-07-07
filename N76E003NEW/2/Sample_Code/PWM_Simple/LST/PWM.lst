@@ -1,0 +1,408 @@
+C51 COMPILER V9.54   PWM                                                                   07/05/2018 19:35:16 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE PWM
+OBJECT MODULE PLACED IN .\Output\PWM.obj
+COMPILER INVOKED BY: E:\keil\C51\BIN\C51.EXE Code\PWM.c OPTIMIZE(7,SPEED) BROWSE INCDIR(..\..\Include) DEFINE(FOSC_16000
+                    -0) DEBUG OBJECTEXTEND PRINT(.\LST\PWM.lst) TABS(2) OBJECT(.\Output\PWM.obj)
+
+line level    source
+
+   1          #include "N76E003.h"
+   2          #include "Common.h"
+   3          #include "Delay.h"
+   4          #include "SFR_Macro.h"
+   5          #include "Function_define.h"
+   6          #include "intrins.h"
+   7          
+   8          #define uchar unsigned char
+   9          #define iMAX_LEN 21684
+  10          #define iMIN_LEN 109
+  11          #define DOUBLE_CRYSTAL_FREQ  16
+  12          sbit RX =P1^1; 
+  13          sbit TX =P1^2; 
+  14          
+  15          void InitUltrasonicDistance(void);
+  16          unsigned int getDistance(void);
+  17          unsigned int getDistanceState(void);
+  18          unsigned char refreshDistance(void);
+  19          void StartModule();
+  20            
+  21          unsigned int miDistance=0; 
+  22          uchar mcDistanceErr=0; 
+  23          
+  24          bit mbDelayOverFlg = 1; 
+  25          uchar mbDelay10H, mbDelay10L; 
+  26          
+  27          void InitUltrasonicDistance(void)
+  28          {
+  29   1        unsigned int iTmp;
+  30   1      
+  31   1        TMOD |=0x01;
+  32   1        TH0=0;
+  33   1        TL0=0; 
+  34   1        TR0=0; 
+  35   1        ET0=1;
+  36   1        EA=1; 
+  37   1        iTmp = (unsigned int)(65536-(7500/(12/DOUBLE_CRYSTAL_FREQ)));
+*** WARNING C222 IN LINE 37 OF Code\PWM.c: div by zero
+  38   1        mbDelay10H = iTmp >> 8; 
+  39   1        mbDelay10L = iTmp &0x0F; 
+  40   1      }
+  41          void tim0_()interrupt 1 
+  42          { 
+  43   1        TR0 = 0; 
+  44   1        mbDelayOverFlg = 1; 
+  45   1      }
+  46          unsigned int getDistance(void)
+  47          {
+  48   1        return miDistance;
+  49   1      }
+  50          unsigned int getDistanceState(void)
+  51          {
+  52   1        return mcDistanceErr;
+  53   1      }
+C51 COMPILER V9.54   PWM                                                                   07/05/2018 19:35:16 PAGE 2   
+
+  54          unsigned char refreshDistance(void)
+  55          {
+  56   1        unsigned int i; 
+  57   1        unsigned int iCycle; 
+  58   1      
+  59   1        if (1 == mbDelayOverFlg)
+  60   1        { 
+  61   2          i = iMAX_LEN; 
+  62   2          StartModule(); 
+  63   2          while(!RX && i-->0);
+  64   2          if (i>0) 
+  65   2          {
+  66   3            TR0=1; 
+  67   3            while(RX);
+  68   3            TR0=0; 
+  69   3            iCycle = (TH0 * 256 + TL0) + 1;
+  70   3            Send_Data_To_UART0(iCycle);     
+  71   3            TH0=0;
+  72   3            TL0=0;  
+  73   3            if (iCycle <= iMIN_LEN)
+  74   3            {
+  75   4              mcDistanceErr = 1;
+  76   4              mbDelayOverFlg = 0; 
+  77   4              TH0 = mbDelay10H; 
+  78   4              TL0 = mbDelay10L; 
+  79   4              TR0 = 1; 
+  80   4            }
+  81   3            else
+  82   3            {
+  83   4              miDistance = (unsigned int)(iCycle * 0.01844670);
+  84   4              mcDistanceErr = 0;
+  85   4              mbDelayOverFlg = 0; 
+  86   4              TH0 = 0; 
+  87   4              TL0 = 0; 
+  88   4              TR0=1;
+  89   4            }
+  90   3          }
+  91   2          else 
+  92   2            mcDistanceErr = 2; 
+  93   2          return 0; 
+  94   2        }
+  95   1        else 
+  96   1          return 1;
+  97   1      }
+  98          
+  99          void main(void)
+ 100          {
+ 101   1        char pcOutBuf[30];
+ 102   1        unsigned int ild = 0;
+ 103   1        InitUltrasonicDistance();
+ 104   1        Set_All_GPIO_Quasi_Mode;
+ 105   1        InitialUART0_Timer3(115200);  
+ 106   1        while(1)
+ 107   1        {
+ 108   2            if( 0==refreshDistance() )
+ 109   2            {
+ 110   3                if( 0==getDistanceState() && (ild != getDistance()) )
+ 111   3                {
+ 112   4                      ild = getDistance();
+ 113   4      //                Send_Data_To_UART0();
+ 114   4                }
+ 115   3            }
+C51 COMPILER V9.54   PWM                                                                   07/05/2018 19:35:16 PAGE 3   
+
+ 116   2      
+ 117   2        }
+ 118   1      }
+*** WARNING C280 IN LINE 101 OF Code\PWM.c: 'pcOutBuf': unreferenced local variable
+ 119          
+ 120          
+ 121          
+ 122          
+ 123          
+ 124          
+ 125          
+ 126          
+ 127          
+ 128          
+ 129          
+ 130          
+ 131          
+ 132          
+ 133          
+ 134          
+ 135          
+ 136          
+ 137          
+ 138          
+ 139          void StartModule()
+ 140          {
+ 141   1        TX = 1;
+ 142   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 143   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 144   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 145   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 146   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 147   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 148   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 149   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 150   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 151   1          _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 152   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 153   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 154   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 155   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 156   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 157   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 158   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 159   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 160   1          _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 161   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 162   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 163   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 164   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 165   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 166   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 167   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 168   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 169   1          _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 170   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 171   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 172   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 173   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 174   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 175   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 176   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+C51 COMPILER V9.54   PWM                                                                   07/05/2018 19:35:16 PAGE 4   
+
+ 177   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 178   1          _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 179   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 180   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 181   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 182   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 183   1        _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 184   1          _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 185   1          _nop_();_nop_();_nop_();_nop_();
+ 186   1        TX=0;
+ 187   1      }
+ 188          
+ 189          
+ 190          
+ 191          
+ 192          
+ 193          
+ 194          
+ 195          
+ 196          
+ 197          
+ 198          
+ 199          
+ 200          
+ 201          
+ 202          
+ 203          
+ 204          
+ 205          
+ 206          
+ 207          
+ 208          
+ 209          
+ 210          
+ 211          
+ 212          
+ 213          
+ 214          
+ 215          
+ 216          
+ 217          
+ 218          
+ 219          
+ 220          
+ 221          
+ 222          /*#include "N76E003.h"
+ 223          #include "Common.h"
+ 224          #include "Delay.h"
+ 225          #include "SFR_Macro.h"
+ 226          #include "Function_define.h"
+ 227          #include "intrins.h"
+ 228          
+ 229          #define uint unsigned int 
+ 230          #define uchar unsigned char
+ 231            
+ 232          sbit Tx = P1^0;
+ 233          sbit Rx = P3^0;
+ 234          
+ 235          bit TimeUp = 0;
+ 236          long Th0,Tl0;
+ 237          unsigned long time0 = 0;
+ 238          uint Measureresult = 0;
+C51 COMPILER V9.54   PWM                                                                   07/05/2018 19:35:16 PAGE 5   
+
+ 239          void delay_20us();
+ 240          uint Measure(void)
+ 241          {
+ 242              char De120us = 0;
+ 243              char RxBack  = 1;
+ 244          #if 1 
+ 245              TMOD  = 0x01 ;
+ 246              Tx    = 0;
+ 247              Th0   = 0;
+ 248              Tl0   = 0;
+ 249              TimeUp= 0;
+ 250              EA    = 1;
+ 251              ET0   = 1;
+ 252            
+ 253              TR0 = 0;
+ 254              TH0 = 0;
+ 255              TL0 = 0;
+ 256          #endif  
+ 257              Tx = 1;
+ 258              delay_20us();
+ 259              Tx = 0;
+ 260            
+ 261              while(Rx==0);
+ 262              TH0 = 0;
+ 263              TL0 = 0;
+ 264              TR0 = 1;  
+ 265              while(Rx==1);
+ 266          #if 1   
+ 267              while(RxBack)
+ 268              {
+ 269                  if(Rx==0)//|| TimeUp==1)
+ 270                  {
+ 271                      TR0 = 0;
+ 272                      Th0 = TH0;
+ 273                      Tl0 = TL0;
+ 274                      TR0 = 1;
+ 275                      RxBack =0;
+ 276                  }
+ 277              }
+ 278          #endif
+ 279              while(!TimeUp);
+ 280              
+ 281              Send_Data_To_UART0(Th0);
+ 282              Send_Data_To_UART0(Tl0);
+ 283              time0 = Th0*256+Tl0;
+ 284              Measureresult = ((unsigned long)344*time0)/2000;
+ 285              
+ 286              if(Measureresult<30||Measureresult>900)
+ 287              {
+ 288                Measureresult = 0;
+ 289              }
+ 290                  return Measureresult;
+ 291          }
+ 292          
+ 293          void T0_time()interrupt 1
+ 294          {
+ 295              TH0 = 0;
+ 296              TL0 = 0;
+ 297              TimeUp = 1;
+ 298          
+ 299          }
+ 300          
+C51 COMPILER V9.54   PWM                                                                   07/05/2018 19:35:16 PAGE 6   
+
+ 301          
+ 302          void main()
+ 303          {
+ 304            uchar flag = 0;
+ 305            uint j = 0;
+ 306            uint ge,shi,bai;
+ 307            Set_All_GPIO_Quasi_Mode;
+ 308            P30_Quasi_Mode;
+ 309            P10_PushPull_Mode;
+ 310          //  P10_Quasi_Mode;
+ 311          
+ 312            InitialUART0_Timer3(115200);
+ 313            while(1)
+ 314            {
+ 315                  ge  = Measure()%100%10;
+ 316                  shi = Measure()%100/10;
+ 317                  ge  = Measure()/100;
+ 318              Measure();
+ 319          //        Send_Data_To_UART0(ge);
+ 320          //        Send_Data_To_UART0(shi);
+ 321          //        Send_Data_To_UART0(bai);
+ 322              Timer1_Delay10ms(8);    
+ 323            }
+ 324          }
+ 325          
+ 326          void delay_20us()
+ 327          {
+ 328            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 329            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 330            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 331            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 332            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 333            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 334            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 335            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 336            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 337              _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 338            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 339            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 340            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 341            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 342            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 343            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 344            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 345            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 346              _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 347            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 348            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 349            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 350            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 351            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 352            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 353            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 354            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 355              _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 356            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 357            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 358            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 359            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 360            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 361            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 362            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+C51 COMPILER V9.54   PWM                                                                   07/05/2018 19:35:16 PAGE 7   
+
+ 363            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 364              _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 365            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 366            _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 367          
+ 368          
+ 369          
+ 370          }*/
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    619    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      5      36
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  2 WARNING(S),  0 ERROR(S)

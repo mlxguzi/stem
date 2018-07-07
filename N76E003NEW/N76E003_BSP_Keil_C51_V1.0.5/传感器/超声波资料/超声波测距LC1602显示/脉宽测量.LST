@@ -1,0 +1,330 @@
+C51 COMPILER V9.54   ________                                                              06/04/2018 09:09:03 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE ________
+OBJECT MODULE PLACED IN 脉宽测量.OBJ
+COMPILER INVOKED BY: E:\keil\C51\BIN\C51.EXE 脉宽测量.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          SMC1602A(16*2)模拟口线接线方式
+*** ERROR C141 IN LINE 1 OF 脉宽测量.c: syntax error near '16'
+*** ERROR C100 IN LINE 1 OF 脉宽测量.c: unprintable character 0xC4 skipped
+*** ERROR C100 IN LINE 1 OF 脉宽测量.c: unprintable character 0xA3 skipped
+*** ERROR C100 IN LINE 1 OF 脉宽测量.c: unprintable character 0xC4 skipped
+*** ERROR C100 IN LINE 1 OF 脉宽测量.c: unprintable character 0xE2 skipped
+*** ERROR C100 IN LINE 1 OF 脉宽测量.c: unprintable character 0xBF skipped
+*** ERROR C100 IN LINE 1 OF 脉宽测量.c: unprintable character 0xDA skipped
+*** ERROR C100 IN LINE 1 OF 脉宽测量.c: unprintable character 0xCF skipped
+*** ERROR C100 IN LINE 1 OF 脉宽测量.c: unprintable character 0xDF skipped
+*** ERROR C100 IN LINE 1 OF 脉宽测量.c: unprintable character 0xBD skipped
+*** ERROR C100 IN LINE 1 OF 脉宽测量.c: unprintable character 0xD3 skipped
+*** ERROR C100 IN LINE 1 OF 脉宽测量.c: unprintable character 0xCF skipped
+*** ERROR C100 IN LINE 1 OF 脉宽测量.c: unprintable character 0xDF skipped
+*** ERROR C100 IN LINE 1 OF 脉宽测量.c: unprintable character 0xB7 skipped
+*** ERROR C100 IN LINE 1 OF 脉宽测量.c: unprintable character 0xBD skipped
+*** ERROR C100 IN LINE 1 OF 脉宽测量.c: unprintable character 0xCA skipped
+*** ERROR C100 IN LINE 1 OF 脉宽测量.c: unprintable character 0xBD skipped
+   2          连接线图: 
+*** ERROR C100 IN LINE 2 OF 脉宽测量.c: unprintable character 0xC1 skipped
+*** ERROR C100 IN LINE 2 OF 脉宽测量.c: unprintable character 0xAC skipped
+*** ERROR C100 IN LINE 2 OF 脉宽测量.c: unprintable character 0xBD skipped
+*** ERROR C100 IN LINE 2 OF 脉宽测量.c: unprintable character 0xD3 skipped
+*** ERROR C100 IN LINE 2 OF 脉宽测量.c: unprintable character 0xCF skipped
+*** ERROR C100 IN LINE 2 OF 脉宽测量.c: unprintable character 0xDF skipped
+*** ERROR C100 IN LINE 2 OF 脉宽测量.c: unprintable character 0xCD skipped
+*** ERROR C100 IN LINE 2 OF 脉宽测量.c: unprintable character 0xBC skipped
+*** ERROR C141 IN LINE 2 OF 脉宽测量.c: syntax error near ':'
+   3                 ---------------------------------------------------
+   4                 |LCM-----51   |  LCM-----51   |  LCM------51      |
+*** ERROR C129 IN LINE 4 OF 脉宽测量.c: missing ';' before '--'
+   5                 --------------------------------------------------|
+   6                 |DB0-----P1.0 |  DB4-----P1.4 |  RW-------P3.4    |
+   7                 |DB1-----P1.1 |  DB5-----P1.5 |  RS-------P3.3    |
+   8                 |DB2-----P1.2 |  DB6-----P1.6 |  E--------P3.5    |
+   9                 |DB3-----P1.3 |  DB7-----P1.7 |  VLCD接1K电阻到GND|
+  10                 ---------------------------------------------------
+  11          接线：模块TRIG接 P2.6  ECH0 接P2.7
+  12          
+  13          本程序源码只供学习参考，不得应用于商业用途，如有需要请联系作者。
+  14          
+  15          [注:AT89x51使用12M或11.0592M晶振,实测使用11.0592M]
+  16          =============================================================*/
+  17          #include <AT89x51.H>    //器件配置文件
+*** WARNING C318 IN LINE 17 OF 脉宽测量.c: can't open file 'AT89x51.H'
+  18          #include <intrins.h>
+  19          #define  RX  P2_7
+  20          #define  TX  P2_6
+  21          
+  22          #define LCM_RW  P3_4 //定义LCD引脚
+  23          #define LCM_RS  P3_3
+  24          #define LCM_E   P3_5
+  25          #define LCM_Data  P1
+  26          
+  27          #define Key_Data P2_0 //定义Keyboard引脚
+C51 COMPILER V9.54   ________                                                              06/04/2018 09:09:03 PAGE 2   
+
+  28          #define Key_CLK  P3_2
+  29          
+  30          #define Busy    0x80 //用于检测LCM状态字中的Busy标识
+  31          
+  32          void LCMInit(void);
+  33          void DisplayOneChar(unsigned char X, unsigned char Y, unsigned char DData);
+  34          void DisplayListChar(unsigned char X, unsigned char Y, unsigned char code *DData);
+  35          void Delay5Ms(void);
+  36          void Delay400Ms(void);
+  37          void Decode(unsigned char ScanCode);
+  38          void WriteDataLCM(unsigned char WDLCM);
+  39          void WriteCommandLCM(unsigned char WCLCM,BuysC);
+  40          
+  41          unsigned char ReadDataLCM(void);
+  42          unsigned char ReadStatusLCM(void);
+  43          unsigned char code mcustudio[] ={"mcustudio.com.cn"};
+  44          unsigned char code email[] =    {"fhwxaoo@163.com "};
+  45          unsigned char code Cls[] =      {"                "};
+  46          unsigned char code ASCII[15] =    {'0','1','2','3','4','5','6','7','8','9','.','-','M'};
+  47          
+  48          static unsigned char DisNum = 0; //显示用指针         
+  49                 unsigned int  time=0;
+  50               unsigned long S=0;
+  51               bit      flag =0;
+  52               unsigned char disbuff[4]    ={ 0,0,0,0,};
+  53          
+  54          
+  55          //写数据
+  56          void WriteDataLCM(unsigned char WDLCM) 
+  57          {
+  58            ReadStatusLCM(); //检测忙
+  59            LCM_Data = WDLCM;
+  60            LCM_RS = 1;
+  61            LCM_RW = 0;
+  62            LCM_E = 0; //若晶振速度太高可以在这后加小的延时
+  63            LCM_E = 0; //延时
+  64            LCM_E = 1;
+  65          }
+  66          
+  67          //写指令
+  68          void WriteCommandLCM(unsigned char WCLCM,BuysC) //BuysC为0时忽略忙检测
+  69          {
+  70            if (BuysC) ReadStatusLCM(); //根据需要检测忙
+  71            LCM_Data = WCLCM;
+  72            LCM_RS = 0;
+  73            LCM_RW = 0; 
+  74            LCM_E = 0;
+  75            LCM_E = 0;
+  76            LCM_E = 1;  
+  77          }
+  78          
+  79          //读数据
+  80          unsigned char ReadDataLCM(void)
+  81          {
+  82            LCM_RS = 1; 
+  83            LCM_RW = 1;
+  84            LCM_E = 0;
+  85            LCM_E = 0;
+  86            LCM_E = 1;
+  87            return(LCM_Data);
+  88          }
+  89          
+C51 COMPILER V9.54   ________                                                              06/04/2018 09:09:03 PAGE 3   
+
+  90          //读状态
+  91          unsigned char ReadStatusLCM(void)
+  92          {
+  93            LCM_Data = 0xFF; 
+  94            LCM_RS = 0;
+  95            LCM_RW = 1;
+  96            LCM_E = 0;
+  97            LCM_E = 0;
+  98            LCM_E = 1;
+  99            while (LCM_Data & Busy); //检测忙信号
+ 100            return(LCM_Data);
+ 101          }
+ 102          
+ 103          void LCMInit(void) //LCM初始化
+ 104          {
+ 105            LCM_Data = 0;
+ 106            WriteCommandLCM(0x38,0); //三次显示模式设置，不检测忙信号
+ 107            Delay5Ms(); 
+ 108            WriteCommandLCM(0x38,0);
+ 109            Delay5Ms(); 
+ 110            WriteCommandLCM(0x38,0);
+ 111            Delay5Ms(); 
+ 112          
+ 113            WriteCommandLCM(0x38,1); //显示模式设置,开始要求每次检测忙信号
+ 114            WriteCommandLCM(0x08,1); //关闭显示
+ 115            WriteCommandLCM(0x01,1); //显示清屏
+ 116            WriteCommandLCM(0x06,1); // 显示光标移动设置
+ 117            WriteCommandLCM(0x0F,1); // 显示开及光标设置
+ 118          }
+ 119          
+ 120          //按指定位置显示一个字符
+ 121          void DisplayOneChar(unsigned char X, unsigned char Y, unsigned char DData)
+ 122          {
+ 123            Y &= 0x1;
+ 124            X &= 0xF; //限制X不能大于15，Y不能大于1
+ 125            if (Y) X |= 0x40; //当要显示第二行时地址码+0x40;
+ 126            X |= 0x80; //算出指令码
+ 127            WriteCommandLCM(X, 1); //发命令字
+ 128            WriteDataLCM(DData); //发数据
+ 129          }
+ 130          
+ 131          //按指定位置显示一串字符
+ 132          void DisplayListChar(unsigned char X, unsigned char Y, unsigned char code *DData)
+ 133          {
+ 134            unsigned char ListLength;
+ 135          
+ 136            ListLength = 0;
+ 137            Y &= 0x1;
+ 138            X &= 0xF; //限制X不能大于15，Y不能大于1
+ 139            while (DData[ListLength]>0x19) //若到达字串尾则退出
+ 140              {
+ 141                if (X <= 0xF) //X坐标应小于0xF
+ 142                  {
+ 143                    DisplayOneChar(X, Y, DData[ListLength]); //显示单个字符
+ 144                    ListLength++;
+ 145                    X++;
+ 146                  }
+ 147              }
+ 148          }
+ 149          
+ 150          //5ms延时
+ 151          void Delay5Ms(void)
+C51 COMPILER V9.54   ________                                                              06/04/2018 09:09:03 PAGE 4   
+
+ 152          {
+ 153            unsigned int TempCyc = 5552;
+ 154            while(TempCyc--);
+ 155          }
+ 156          
+ 157          //400ms延时
+ 158          void Delay400Ms(void)
+ 159          {
+ 160            unsigned char TempCycA = 5;
+ 161            unsigned int TempCycB;
+ 162            while(TempCycA--)
+ 163              {
+ 164                TempCycB=7269;
+ 165                while(TempCycB--);
+ 166              };
+ 167          }
+ 168          /********************************************************/
+ 169              void Conut(void)
+ 170            {
+ 171             time=TH0*256+TL0;
+ 172             TH0=0;
+ 173             TL0=0;
+ 174            
+ 175             S=(time*1.7)/100;     //算出来是CM
+ 176             if((S>=700)||flag==1) //超出测量范围显示“-”
+ 177             {   
+ 178              flag=0;
+ 179             
+ 180              DisplayOneChar(0, 1, ASCII[11]);
+ 181              DisplayOneChar(1, 1, ASCII[10]);  //显示点
+ 182              DisplayOneChar(2, 1, ASCII[11]);
+ 183              DisplayOneChar(3, 1, ASCII[11]);
+ 184              DisplayOneChar(4, 1, ASCII[12]);  //显示M
+ 185             }
+ 186             else
+ 187             {
+ 188              disbuff[0]=S%1000/100;
+ 189              disbuff[1]=S%1000%100/10;
+ 190              disbuff[2]=S%1000%10 %10;
+ 191              DisplayOneChar(0, 1, ASCII[disbuff[0]]);
+ 192              DisplayOneChar(1, 1, ASCII[10]);  //显示点
+ 193              DisplayOneChar(2, 1, ASCII[disbuff[1]]);
+ 194              DisplayOneChar(3, 1, ASCII[disbuff[2]]);
+ 195              DisplayOneChar(4, 1, ASCII[12]);  //显示M
+ 196             }
+ 197            }
+ 198          /********************************************************/
+ 199               void zd0() interrupt 1      //T0中断用来计数器溢出,超过测距范围
+ 200            {
+ 201              flag=1;              //中断溢出标志
+ 202            }
+ 203          /********************************************************/
+ 204               void  StartModule()             //启动模块
+ 205            {
+ 206              TX=1;                          //启动一次模块
+ 207              _nop_(); 
+ 208              _nop_(); 
+ 209              _nop_(); 
+ 210              _nop_(); 
+ 211              _nop_(); 
+ 212              _nop_(); 
+ 213              _nop_(); 
+C51 COMPILER V9.54   ________                                                              06/04/2018 09:09:03 PAGE 5   
+
+ 214              _nop_(); 
+ 215              _nop_(); 
+ 216              _nop_(); 
+ 217              _nop_(); 
+ 218              _nop_(); 
+ 219              _nop_(); 
+ 220              _nop_(); 
+ 221              _nop_(); 
+ 222              _nop_(); 
+ 223              _nop_();
+ 224              _nop_(); 
+ 225              _nop_(); 
+ 226              _nop_(); 
+ 227              _nop_();
+ 228              TX=0;
+ 229            }
+ 230          /********************************************************/ 
+ 231          void delayms(unsigned int ms)
+ 232          {
+ 233            unsigned char i=100,j;
+ 234            for(;ms;ms--)
+ 235            {
+ 236              while(--i)
+ 237              {
+ 238                j=10;
+ 239                while(--j);
+ 240              }
+ 241            }
+ 242          }
+ 243          /*********************************************************/
+ 244          void main(void)
+ 245          {
+ 246            unsigned char TempCyc;
+ 247            Delay400Ms(); //启动等待，等LCM讲入工作状态
+ 248            LCMInit(); //LCM初始化
+ 249            Delay5Ms(); //延时片刻(可不要)
+ 250            DisplayListChar(0, 0, mcustudio);
+ 251            DisplayListChar(0, 1, email);
+ 252            ReadDataLCM();//测试用句无意义
+ 253            for (TempCyc=0; TempCyc<10; TempCyc++)
+ 254            Delay400Ms(); //延时
+ 255            DisplayListChar(0, 1, Cls); 
+ 256            while(1)
+ 257            {
+ 258             TMOD=0x01;      //设T0为方式1，GATE=1；
+ 259             TH0=0;
+ 260             TL0=0;          
+ 261             ET0=1;             //允许T0中断
+ 262             EA=1;         //开启总中断     
+ 263            
+ 264            while(1)
+ 265              {
+ 266                 StartModule();
+ 267              // DisplayOneChar(0, 1, ASCII[0]);
+ 268                 while(!RX);    //当RX为零时等待
+ 269                 TR0=1;         //开启计数
+ 270                 while(RX);     //当RX为1计数并等待
+ 271                 TR0=0;       //关闭计数
+ 272                   Conut();     //计算
+ 273               delayms(80);   //80MS
+ 274               
+ 275              }
+C51 COMPILER V9.54   ________                                                              06/04/2018 09:09:03 PAGE 6   
+
+ 276            }
+ 277          }
+ 278          
+ 279          
+ 280          
+ 281                          
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  27 ERROR(S)

@@ -1,0 +1,308 @@
+C51 COMPILER V9.54   I2C_S                                                                 06/05/2018 20:02:58 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE I2C_S
+OBJECT MODULE PLACED IN .\Output\I2C_S.obj
+COMPILER INVOKED BY: E:\keil\C51\BIN\C51.EXE Code\I2C_S.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\..\..\Include) DEFINE(FOSC_
+                    -160000) DEBUG OBJECTEXTEND PRINT(.\LST\I2C_S.lst) TABS(2) OBJECT(.\Output\I2C_S.obj)
+
+line level    source
+
+   1          /*--------------------------------------------------------------------------------------------------------
+             --*/
+   2          /*                                                                                                        
+             - */
+   3          /* Copyright(c) 2015 Nuvoton Technology Corp. All rights reserved.                                        
+             - */
+   4          /*                                                                                                        
+             - */
+   5          /*--------------------------------------------------------------------------------------------------------
+             --*/
+   6          
+   7          //********************************************************************************************************
+             -***
+   8          //  Nuvoton Technoledge Corp. 
+   9          //  Website: http://www.nuvoton.com
+  10          //  E-Mail : MicroC-8bit@nuvoton.com
+  11          //  Date   : May/1/2015
+  12          //********************************************************************************************************
+             -***
+  13          
+  14          //********************************************************************************************************
+             -***
+  15          //  File Function: N76E003 I2C Slave demo code
+  16          //********************************************************************************************************
+             -***
+  17          
+  18          #include "N76E003.h"
+  19          #include "Common.h"
+  20          #include "Delay.h"
+  21          #include "SFR_Macro.h"
+  22          #include "Function_define.h"
+  23          
+  24          //********************************************************************************************************
+             -***
+  25          //  N76E885-series I2C slave mode demo code, the Slave address = 0xA4
+  26          //
+  27          //   ____________            _____________ 
+  28          //  |            |   SDA    |             |
+  29          //  |            |<-------->|             |
+  30          //  |            |          |             |
+  31          //  |N76E003(M) |          | N76E003(S) |
+  32          //  |(I2C_Master)|          | (I2C_Slave) |
+  33          //  |            |   SCL    |             |
+  34          //  |            |--------->|             |
+  35          //  |____________|          |_____________|
+  36          //
+  37          //  The protocol of I2C is same the "24LC64"
+  38          //********************************************************************************************************
+             -***
+  39          
+  40          
+  41          #define I2C_CLOCK               13
+  42          #define EEPROM_SLA              0xA4
+  43          
+C51 COMPILER V9.54   I2C_S                                                                 06/05/2018 20:02:58 PAGE 2   
+
+  44          ///定时器参数
+  45          #define TH0_INIT        50000 
+  46          #define TL0_INIT        50000
+  47          #define TH1_INIT        25000 
+  48          #define TL1_INIT        25000
+  49          UINT8 u8TH0_Tmp,u8TL0_Tmp,u8TH1_Tmp,u8TL1_Tmp;
+  50          UINT8 num1 = 0,key_num = 0;
+  51          
+  52          ///
+  53          ///长按按键判断
+  54          UINT8 trg = 0 ;
+  55          UINT8 cont = 0 ,readdata = 0;
+  56          
+  57          ///
+  58          UINT8 data_received[7], data_num = 0 ,j = 0;
+  59          UINT8 data_slave[34];
+  60          UINT8 state = 0,i = 0,state_data = 0;
+  61          
+  62          #define LED_1  P10 = 0;P10 = 1;
+  63          #define LED_0  P10 = 1;P10 = 0;
+  64          sbit KEY=P1^1;
+  65          
+  66          void Find(UINT8 num)
+  67          {
+  68   1          for(j=0;j<34;j++)
+  69   1          {
+  70   2            if(data_received[j] == num)
+  71   2                  return ;
+  72   2          }
+  73   1      }
+  74          
+  75          void keyread(void)
+  76          {
+  77   1          readdata = KEY ^ 0xff;
+  78   1          trg = readdata &(readdata^cont);
+  79   1          cont = readdata;
+  80   1      }
+  81          
+  82          //========================================================================================================
+  83          void I2C_ISR(void) interrupt 6
+  84          {
+  85   1          switch (I2STAT)
+  86   1          {
+  87   2              case 0x00:
+  88   2                  STO = 1;
+  89   2                  break;
+  90   2      
+  91   2              case 0x60:
+  92   2                  AA = 1;
+  93   2                  break;
+  94   2              
+  95   2              case 0x68:
+  96   2                  P02 = 0;
+  97   2                  while(1);
+  98   2                  break;
+  99   2      
+ 100   2              case 0x80:
+ 101   2                  //P3 = 0x80;
+ 102   2                  data_received[data_num] = I2DAT;
+ 103   2                  data_num++;
+ 104   2              
+ 105   2                  if (data_num == 7)
+C51 COMPILER V9.54   I2C_S                                                                 06/05/2018 20:02:58 PAGE 3   
+
+ 106   2                      AA = 0;
+ 107   2                  else
+ 108   2                      AA = 1;
+ 109   2                  break;
+ 110   2              case 0x88:
+ 111   2                  //P3 = 0x88;
+ 112   2                  data_received[data_num] = I2DAT;
+ 113   2                  data_num = 0;
+ 114   2                  AA = 1;
+ 115   2                  break;
+ 116   2      
+ 117   2              case 0xA0:
+ 118   2                  //P3 = 0xA0;
+ 119   2                  AA = 1;
+ 120   2                  break;
+ 121   2       
+ 122   2              case 0xA8:
+ 123   2                  //P3 = 0xA0;
+ 124   2                 I2DAT = 0x00;//data_received[data_num];
+ 125   2                 data_num++;
+ 126   2                  AA = 1;
+ 127   2                  break;
+ 128   2              
+ 129   2              case 0xB8:
+ 130   2                  
+ 131   2                  I2DAT = data_slave[state_data];  //根据主机发送的信号返回相应数据
+ 132   2                  
+ 133   2                  state_data++;
+ 134   2              
+ 135   2      //          data_num++;
+ 136   2      
+ 137   2                  AA = 1;
+ 138   2                  break;
+ 139   2      
+ 140   2              case 0xC0:
+ 141   2                  AA = 1;
+ 142   2                  break; 
+ 143   2      
+ 144   2              case 0xC8:
+ 145   2                  //P3 = 0xC8;
+ 146   2                  AA = 1;
+ 147   2                  break;        
+ 148   2          }
+ 149   1      
+ 150   1          SI = 0;
+ 151   1      //    while(STO);
+ 152   1      }
+ 153          
+ 154          
+ 155          void Timer0_ISR (void) interrupt 1  //interrupt address is 0x000B
+ 156          {
+ 157   1          TH0 = u8TH0_Tmp;
+ 158   1          TL0 = u8TL0_Tmp;    
+ 159   1          
+ 160   1          num1++;                     // GPIO1 toggle when interrupt
+ 161   1      
+ 162   1      }
+ 163          
+ 164          void Timer1_ISR (void) interrupt 3  //interrupt address is 0x001B
+ 165          {
+ 166   1          TH1 = u8TH1_Tmp;
+ 167   1          TL1 = u8TL1_Tmp;   
+C51 COMPILER V9.54   I2C_S                                                                 06/05/2018 20:02:58 PAGE 4   
+
+ 168   1      
+ 169   1      //    P03 = ~P03;                     //P0.3 toggle when interrupt
+ 170   1      }
+ 171          
+ 172          
+ 173          //========================================================================================================
+ 174          void Init_I2C(void)
+ 175          {
+ 176   1          P13_Quasi_Mode;                         //set SCL (P13) is Quasi mode
+ 177   1          P14_Quasi_Mode;                         //set SDA (P14) is Quasi mode
+ 178   1          
+ 179   1          SDA = 1;                                //set SDA and SCL pins high
+ 180   1          SCL = 1;
+ 181   1          
+ 182   1          set_P0SR_6;                             //set SCL (P06) is  Schmitt triggered input select.
+ 183   1          
+ 184   1          set_EI2C;                               //enable I2C interrupt by setting IE1 bit 0
+ 185   1          set_EA;
+ 186   1      
+ 187   1          I2ADDR = EEPROM_SLA;                    //define own slave address
+ 188   1          set_I2CEN;                              //enable I2C circuit
+ 189   1          set_AA;
+ 190   1      }
+ 191          
+ 192          //========================================================================================================
+ 193          void main(void)
+ 194          {
+ 195   1          
+ 196   1          Set_All_GPIO_Quasi_Mode;
+ 197   1          
+ 198   1          /* Initial I2C function */
+ 199   1          Init_I2C();                                 //initial I2C circuit
+ 200   1      
+ 201   1        
+ 202   1        
+ 203   1      //////////////////////////////////////定时器0
+ 204   1          TIMER0_MODE1_ENABLE;
+ 205   1          TIMER1_MODE1_ENABLE;
+ 206   1          
+ 207   1          u8TH0_Tmp = (65536-TH0_INIT)/256;
+ 208   1          u8TL0_Tmp = (65536-TL0_INIT)%256;    
+ 209   1          u8TH1_Tmp = (65536-TH1_INIT)/256;
+ 210   1          u8TL1_Tmp = (65536-TL1_INIT)%256;
+ 211   1          
+ 212   1          TH0 = u8TH0_Tmp;
+ 213   1          TL0 = u8TL0_Tmp;
+ 214   1          TH1 = u8TH1_Tmp;
+ 215   1          TL1 = u8TL1_Tmp;
+ 216   1          
+ 217   1          set_ET0;                                    //enable Timer0 interrupt
+ 218   1          set_ET1;                                    //enable Timer1 interrupt开启中断
+ 219   1          set_EA;                                     //enable interrupts
+ 220   1      
+ 221   1          set_TR1;                                    //Timer1 run
+ 222   1          set_TR0;                                    //Timer0 run
+ 223   1      /////////////////////////////////////////////////////////////
+ 224   1          while(1)
+ 225   1          {
+ 226   2            keyread();                                //判断长按
+ 227   2            if(KEY)                                 //是否按下          
+ 228   2            {
+ 229   3              Timer0_Delay1ms(20);                    //延时20ms，防抖
+C51 COMPILER V9.54   I2C_S                                                                 06/05/2018 20:02:58 PAGE 5   
+
+ 230   3              if(KEY)
+ 231   3              {
+ 232   4                  key_num++;                          //按下按键，开始记录次数  
+ 233   4                  num1 = 0;
+ 234   4              }
+ 235   3            
+ 236   3            }
+ 237   2            
+ 238   2            if( (num1>40) && (key_num ==1) )          //2秒后检测按键按下次数。为1则为Press
+ 239   2            {
+ 240   3                num1 = 0;
+ 241   3                key_num = 0; 
+ 242   3                                                      //将事件存入
+ 243   3            }
+ 244   2            
+ 245   2            if( num1<40 && key_num == 2 )                       //检测按键按下次数。2则为Double Click
+ 246   2            {
+ 247   3                num1 = 0;
+ 248   3                key_num = 0; 
+ 249   3                                                      //将事件存入
+ 250   3            }
+ 251   2            
+ 252   2            if( readdata == 0xff && trg == 0x00 && num1>40 )    //Hold
+ 253   2            {
+ 254   3                num1 = 0;
+ 255   3                key_num = 0;                          //写入事件
+ 256   3              
+ 257   3            }
+ 258   2          
+ 259   2          }
+ 260   1      /////////////////////////////////////////////////////////////////   
+ 261   1          
+ 262   1          while (1);
+ 263   1      /* =================== */
+ 264   1      }
+ 265          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    394    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     55    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

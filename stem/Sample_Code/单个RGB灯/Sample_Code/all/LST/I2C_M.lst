@@ -1,0 +1,116 @@
+C51 COMPILER V9.54   I2C_M                                                                 06/25/2018 19:25:43 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE I2C_M
+OBJECT MODULE PLACED IN .\Output\I2C_M.obj
+COMPILER INVOKED BY: E:\keil\C51\BIN\C51.EXE Code\I2C_M.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\..\Common;..\..\Include) DE
+                    -FINE(FOSC_160000) DEBUG OBJECTEXTEND PRINT(.\LST\I2C_M.lst) TABS(2) OBJECT(.\Output\I2C_M.obj)
+
+line level    source
+
+   1          #include "N76E003.h"
+   2          #include "WS281X.h"
+   3          #include "Delay.h"
+   4          #include "SFR_Macro.h"
+   5          #include "Function_define.h"
+   6          #include "intrins.h"
+   7          #include "WS281X.h"
+   8          #include "string.h"
+   9          #include "buzzer.h"
+  10          #include "infrared.h"
+  11          #include "rgb.h"
+  12          
+  13          #define TH0_INIT        3000 
+  14          #define TL0_INIT        3000          //¶¨Ê±Æ÷
+  15          
+  16          U8 u8TH0_Tmp,u8TL0_Tmp;
+  17          U8 RGB_rh = 0x00,RGB_rl = 0x00;//ºôÎüµÆ²âÊÔ
+  18           
+  19          
+  20          U8 delay_rgb = 0,i = 0;
+  21          
+  22          void Timer0_ISR (void) interrupt 1  //interrupt address is 0x000B
+  23          {
+  24   1          TH0 = u8TH0_Tmp;
+  25   1          TL0 = u8TL0_Tmp;    
+  26   1          
+  27   1          RGB_rl++;
+  28   1          if(RGB_rl >= 0xf1)
+  29   1          {
+  30   2              RGB_rh++;
+  31   2              RGB_rl = 0x00;              
+  32   2          }
+  33   1      
+  34   1          if(RGB_rh >= 0x06)
+  35   1          {
+  36   2              RGB_rh = 0x00;
+  37   2              RGB_rl = 0x00;
+  38   2          }
+  39   1      
+  40   1          delay_rgb++;
+  41   1      }
+  42          //ÑÓÊ±º¯Êý£¬2ms
+  43          void delay_rg(U8 temp)
+  44          {
+  45   1          delay_rgb = 0;
+  46   1          while( delay_rgb!=temp );
+  47   1      }
+  48          
+  49          void rgb_settings(UINT8 duration,UINT8 cycle,UINT8 interval)
+  50          {
+  51   1          for(i=0;i<cycle;i++)
+  52   1          {
+  53   2              pwm_set(0x07,0x01,0x05,0x65,0x05,0x11);               
+  54   2              delay_rg(interval); 
+C51 COMPILER V9.54   I2C_M                                                                 06/25/2018 19:25:43 PAGE 2   
+
+  55   2          }
+  56   1      
+  57   1      }
+*** WARNING C280 IN LINE 49 OF Code\I2C_M.c: 'duration': unreferenced local variable
+  58          
+  59          void main(void)
+  60          {
+  61   1        Set_All_GPIO_Quasi_Mode; 
+  62   1        pwm_rgb_init();
+  63   1      #if 1 
+  64   1          TIMER0_MODE1_ENABLE;  
+  65   1          u8TH0_Tmp = (65536-TH0_INIT)/256;
+  66   1          u8TL0_Tmp = (65536-TL0_INIT)%256; 
+  67   1        
+  68   1          TH0 = u8TH0_Tmp;
+  69   1          TL0 = u8TL0_Tmp;
+  70   1        
+  71   1          set_ET0;                                    //enable Timer0 interrupt
+  72   1          set_EA;                                     //enable interrupts
+  73   1      #endif
+  74   1        
+  75   1          set_TR0;
+  76   1      while(1)
+  77   1      {
+  78   2          
+  79   2          
+  80   2        
+  81   2      }
+  82   1      
+  83   1      
+  84   1      
+  85   1      }
+  86          
+  87          
+  88          
+*** WARNING C316 IN LINE 88 OF Code\I2C_M.c: unterminated conditionals
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    139    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      6       3
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  2 WARNING(S),  0 ERROR(S)

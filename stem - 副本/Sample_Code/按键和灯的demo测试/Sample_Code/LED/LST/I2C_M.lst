@@ -1,0 +1,325 @@
+C51 COMPILER V9.54   I2C_M                                                                 06/26/2018 20:42:54 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE I2C_M
+OBJECT MODULE PLACED IN .\Output\I2C_M.obj
+COMPILER INVOKED BY: E:\keil\C51\BIN\C51.EXE Code\I2C_M.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\..\Common;..\..\Include) DE
+                    -FINE(FOSC_160000) DEBUG OBJECTEXTEND PRINT(.\LST\I2C_M.lst) TABS(2) OBJECT(.\Output\I2C_M.obj)
+
+line level    source
+
+   1          
+   2          #include "N76E003.h"
+   3          #include "WS281X.h"
+   4          #include "Delay.h"
+   5          #include "SFR_Macro.h"
+   6          #include "Function_define.h"
+   7          #include "intrins.h"
+   8          #include "WS281X.h"
+   9          #include <string.h>
+  10          #include "key.h"
+  11          
+  12          /* Private variables ---------------------------------------------------------*/
+  13          #define TH0_INIT        10000 
+  14          #define TL0_INIT        10000         //¶¨Ê±Æ÷
+  15          
+  16          U8 rgb8[3]={0x01,0x01,0x49};
+  17          U8 rgb9[3]={0x55,0x65,0x49};
+  18          #define I2C_CLOCK               13                  //iic´«ÊäËÙÂÊ
+  19          #define EEPROM_SLA              0x40                //´Ó»úµØÖ·  
+  20          
+  21          U8 xdata data_received[64], data_num = 0,num = 0,data_flag = 0,ll = 0;
+  22          U8 xdata data_store[64];
+  23          U8 xdata data_read[64];
+  24          
+  25          U8 i=0,j=0,flag=0,begin_flag = 0;
+  26          U8 u8TH0_Tmp,u8TL0_Tmp;
+  27            
+  28          ////////////////////////////°´¼ü
+  29          U8 timer_10ms_flag = 0;
+  30          U8 key1;
+  31          ///////////////////////////
+  32          U8 TypeID = 0xaa;
+  33          
+  34          void I2C_ISR(void) interrupt 6
+  35          {
+  36   1          switch (I2STAT)
+  37   1          {
+  38   2              case 0x00:
+  39   2                  STO = 1;
+  40   2                  break;
+  41   2      
+  42   2              case 0x60:
+  43   2                  data_num = 0;
+  44   2      
+  45   2                  memset(data_received,0x00,sizeof(data_received));
+  46   2                  data_flag = 1;
+  47   2                  AA = 1;
+  48   2      
+  49   2                  break;
+  50   2              
+  51   2              case 0x68:
+  52   2                  P02 = 0;
+  53   2                  while(1);
+  54   2                  break;
+C51 COMPILER V9.54   I2C_M                                                                 06/26/2018 20:42:54 PAGE 2   
+
+  55   2      
+  56   2              case 0x80:                                        //½ÓÊÕÊý¾Ý
+  57   2                  data_received[data_num] = I2DAT;
+  58   2                  data_num++;
+  59   2      
+  60   2                  AA = 1;
+  61   2                  break;
+  62   2      
+  63   2              case 0x88:                                        //´íÎóÊ±¹éÁã
+  64   2                  data_received[data_num] = I2DAT;
+  65   2                  data_num = 0;
+  66   2      
+  67   2                  AA = 1;
+  68   2                  break;
+  69   2                
+  70   2              case 0xA0:
+  71   2      /*******************************************************************************
+  72   2      Ö÷»ú·¢ËÍÍ£Ö¹Î»£¬³ÌÐòÃ¿´Î¶¼»áÖ´ÐÐµ«ÊÇÓÐÊ±ºòÅÐ¶Ï²»µ½£¬ËùÒÔ¸ÄÎªÅÐ¶ÏÊý¾ÝÖµ
+  73   2      *******************************************************************************/
+  74   2                  
+  75   2                  begin_flag = 1; 
+  76   2              
+  77   2                  AA = 1;
+  78   2                  
+  79   2                  break;
+  80   2      
+  81   2              case 0xA8:                        
+  82   2                  ll = 0;
+  83   2      
+  84   2                  I2DAT = data_read[ll];   
+  85   2                  ll++;
+  86   2                  AA = 1;
+  87   2                
+  88   2                  break;
+  89   2              
+  90   2              case 0xB8:
+  91   2              
+  92   2                  I2DAT = data_read[ll];
+  93   2                  ll++;
+  94   2                  AA = 1;
+  95   2                  break;
+  96   2      
+  97   2              case 0xC0:              
+  98   2                  data_num = 0;                         //ÎªÏÂÒ»´ÎÊý¾Ý×ö×¼±¸
+  99   2                  
+ 100   2                  memset(data_received,0x00,sizeof(data_received)); 
+ 101   2                  memset(data_read,0x00,sizeof(data_read));       
+ 102   2                  i = 0;
+ 103   2                  ll = 0;
+ 104   2                  AA = 1;
+ 105   2      //ÊÂ¼þ±»¶ÁÈ¡ºóEventFlagÖÃ0
+ 106   2                        data_read[0] = TypeID;
+ 107   2                        data_read[1] = 0x00;
+ 108   2                  break; 
+ 109   2      
+ 110   2              case 0xC8:
+ 111   2                  data_num = 0;                         //ÎªÏÂÒ»´ÎÊý¾Ý×ö×¼±¸
+ 112   2              
+ 113   2                  memset(data_received,0x00,sizeof(data_received)); 
+ 114   2      //            memset(data_read,0x00,sizeof(data_read));       
+ 115   2                  i = 0;
+ 116   2                  ll = 0;
+C51 COMPILER V9.54   I2C_M                                                                 06/26/2018 20:42:54 PAGE 3   
+
+ 117   2                  AA = 1;
+ 118   2                  break;  
+ 119   2              
+ 120   2          }
+ 121   1      
+ 122   1          SI = 0;   
+ 123   1          while(SI != 0)
+ 124   1          {
+ 125   2              if(I2STAT == 0x00)
+ 126   2              {
+ 127   3                  set_STO;
+ 128   3              }
+ 129   2              SI = 0;
+ 130   2              if(SI != 0)
+ 131   2              {
+ 132   3                  clr_I2CEN;
+ 133   3                  set_I2CEN;
+ 134   3                  clr_SI;
+ 135   3              } 
+ 136   2          }   
+ 137   1          while(STO);
+ 138   1      }
+ 139          void Timer0_ISR (void) interrupt 1  //interrupt address is 0x000B
+ 140          {
+ 141   1          TH0 = u8TH0_Tmp;
+ 142   1          TL0 = u8TL0_Tmp;    
+ 143   1          j++;
+ 144   1          timer_10ms_flag |= key_flag;
+ 145   1                          // GPIO1 toggle when interrupt
+ 146   1      }
+ 147          void Init_I2C(void)
+ 148          {
+ 149   1          P13_OpenDrain_Mode;
+ 150   1          P14_OpenDrain_Mode;   
+ 151   1          SDA = 1;                                //set SDA and SCL pins high
+ 152   1          SCL = 1;   
+ 153   1        
+ 154   1          set_P0SR_6;                             //set SCL (P06) is  Schmitt triggered input select. 
+ 155   1        
+ 156   1          set_EI2C;                               //enable I2C interrupt by setting IE1 bit 0
+ 157   1          set_EA;
+ 158   1      
+ 159   1          I2ADDR = EEPROM_SLA;                    //define own slave address
+ 160   1          set_I2CEN;                              //enable I2C circuit
+ 161   1          set_AA;
+ 162   1      }
+ 163          void time_d(U8 a)
+ 164          {
+ 165   1          j = 0;
+ 166   1          while( a != j );
+ 167   1          j = 0;
+ 168   1      }
+ 169          void main(void)
+ 170          {
+ 171   1          
+ 172   1          Set_All_GPIO_Quasi_Mode;
+ 173   1          P11_Quasi_Mode;
+ 174   1          P11 = 1;  
+ 175   1      #if 1   
+ 176   1          TIMER0_MODE1_ENABLE;  
+ 177   1          u8TH0_Tmp = (65536-TH0_INIT)/256;
+ 178   1          u8TL0_Tmp = (65536-TL0_INIT)%256; 
+C51 COMPILER V9.54   I2C_M                                                                 06/26/2018 20:42:54 PAGE 4   
+
+ 179   1        
+ 180   1          TH0 = u8TH0_Tmp;
+ 181   1          TL0 = u8TL0_Tmp;
+ 182   1        
+ 183   1          set_ET0;                                    //enable Timer0 interrupt
+ 184   1          set_EA;                                     //enable interrupts
+ 185   1      #endif  
+ 186   1          memset(data_received,0x00,sizeof(data_received));       //ÇåÁã£¬·ÀÖ¹ºóÃæ´¦ÀíÊý¾ÝÊ±ÄÃÈ¡µÄÊý¾Ý³ö´í
+ 187   1          memset(data_store,0x00,sizeof(data_store));
+ 188   1          memset(data_read,0x00,sizeof(data_read));
+ 189   1        
+ 190   1          Init_I2C();
+ 191   1          set_TR0;
+ 192   1        
+ 193   1          while (1)
+ 194   1          {
+ 195   2      //°´¼ü      
+ 196   2              if(timer_10ms_flag&key_flag == 1)
+ 197   2              {
+ 198   3                  timer_10ms_flag &= clear_key_flag;            
+ 199   3                  key1 = key_read();
+ 200   3                
+ 201   3                  switch(key1)
+ 202   3                  {
+ 203   4                      case key_click:
+ 204   4                        ring_display_clear();
+ 205   4                        time_d(5);                
+ 206   4                        WS_frame_sync(rgb8);
+ 207   4      clr_GPIO1;
+ 208   4                        data_read[0] = TypeID;
+ 209   4                        data_read[1] = 0x00;
+ 210   4                        data_read[2] = 0x01;   //µÆ±»µãÁÁ
+ 211   4                        memcpy(&(data_read+3),rgb8,3);
+ 212   4                      
+ 213   4                        break;
+ 214   4                      case key_double:
+ 215   4                        ring_display_clear();
+ 216   4                      set_GPIO1;
+ 217   4                        data_read[0] = TypeID;
+ 218   4                        data_read[1] = 0x00;
+ 219   4                        data_read[2] = 0x01;   //µÆ±»µãÁÁ
+ 220   4                        memcpy(&(data_read+3),rgb9,3);
+ 221   4                        break;
+ 222   4                      case key_long:
+ 223   4                        P12 = ~P12;
+ 224   4                        break;
+ 225   4                  }
+ 226   3              }
+ 227   2      
+ 228   2      
+ 229   2      #if 1 
+ 230   2      
+ 231   2              if( begin_flag == 1)//data_num == 28)//(I2STAT == 0xA0) && (data_flag==1) )                       //Ö÷»ú·¢ËÍÊý¾Ý½
+             -áÊø±êÖ¾
+ 232   2              { 
+ 233   3                              
+ 234   3                      for( num=0;num<=data_num;num++ )
+ 235   3                      {
+ 236   4                          data_store[i] = data_received[num]; 
+ 237   4                          i++;
+ 238   4                      }
+ 239   3                      
+C51 COMPILER V9.54   I2C_M                                                                 06/26/2018 20:42:54 PAGE 5   
+
+ 240   3                      if(data_store[1]==0x01)
+ 241   3                      {
+ 242   4                        flag = 1;
+ 243   4                        
+ 244   4                      }
+ 245   3      
+ 246   3                      data_num = 0;     
+ 247   3                      begin_flag = 0;
+ 248   3                      
+ 249   3              }         
+ 250   2              
+ 251   2      #if 1     
+ 252   2        
+ 253   2              if( flag == 1 )                           
+ 254   2              {         
+ 255   3      //            data_flag = 0;  
+ 256   3                
+ 257   3      //Ð§¹ûµÆÆÚ¼äÓÐÐÂÊý¾Ý·¢ËÍ¹ýÀ´ÔòÍË³ö  
+ 258   3      //            while(!data_flag)
+ 259   3      //            {       
+ 260   3                                      
+ 261   3      //                    if(data_flag!=1)
+ 262   3      //                    {     
+ 263   3                              time_d(3);
+ 264   3                              WS_frame_sync(&(data_store+3));
+ 265   3                              time_d(500);
+ 266   3                              
+ 267   3                              
+ 268   3      //                    }                                         
+ 269   3                              ring_display_clear();     
+ 270   3      //            } 
+ 271   3                  memset(data_received,0x00,sizeof(data_received));
+ 272   3                  
+ 273   3                  memset(data_store,0x00,sizeof(data_store));
+ 274   3                  
+ 275   3                
+ 276   3                              i = 0;
+ 277   3                              flag=0;   
+ 278   3                          
+ 279   3              }
+ 280   2      
+ 281   2      #endif        
+ 282   2              
+ 283   2      #endif
+ 284   2          }
+ 285   1      }
+ 286          
+ 287          
+ 288          /************************ (C) COPYRIGHT OAZON ******************END OF FILE****/
+ 289          
+ 290          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    767    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =    196    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     15    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+C51 COMPILER V9.54   I2C_M                                                                 06/26/2018 20:42:54 PAGE 6   
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

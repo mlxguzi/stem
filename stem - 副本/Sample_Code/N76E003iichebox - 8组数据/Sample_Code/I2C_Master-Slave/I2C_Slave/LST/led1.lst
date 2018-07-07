@@ -1,0 +1,205 @@
+C51 COMPILER V9.54   LED1                                                                  06/12/2018 17:36:40 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE LED1
+OBJECT MODULE PLACED IN .\Output\led1.obj
+COMPILER INVOKED BY: E:\keil\C51\BIN\C51.EXE ..\..\..\Common\led1.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\..\..\Include) DE
+                    -FINE(FOSC_160000) DEBUG OBJECTEXTEND PRINT(.\LST\led1.lst) TABS(2) OBJECT(.\Output\led1.obj)
+
+line level    source
+
+   1          
+   2          #include "N76E003.h"
+   3          #include "Common.h"
+   4          #include "Delay.h"
+   5          #include "SFR_Macro.h"
+   6          #include "Function_define.h"
+   7          #include "intrins.h"
+   8          #include "led1.h"
+   9          
+  10          UINT16 xdata temp1;
+  11          uint8_t xdata ring_brightness_duty1 = 255;//0-255
+  12          
+  13          
+  14          void H1_nop_800ns(){
+  15   1        _nop_();_nop_();_nop_();
+  16   1      
+  17   1      }
+  18          
+  19          void H0_nop_400ns(){
+  20   1        _nop_();
+  21   1      }
+  22          
+  23          
+  24          void Din_1(void) {
+  25   1        LED_RING_DATE_PIN_HIGH();
+  26   1        H1_nop_800ns();
+  27   1        LED_RING_DATE_PIN_LOW();
+  28   1        //L1_nop_450ns();
+  29   1      }
+  30          
+  31          void Din_0(void) {
+  32   1        LED_RING_DATE_PIN_HIGH();
+  33   1      //  H0_nop_400ns();
+  34   1        _nop_();_nop_(); //延时400ns
+  35   1        LED_RING_DATE_PIN_LOW();
+  36   1        //L0_nop_850ns();
+  37   1      }
+  38          
+  39          void Send_8bits(uint8_t dat) {
+  40   1        uint8_t i;
+  41   1        for(i=0;i<8;i++) {
+  42   2          if(dat & 0x80) {//1,for "1",H:0.8us,L:0.45us;
+  43   3            Din_1();
+  44   3          } else {    //0,for "0",H:0.4us,L:0.85us
+  45   3            Din_0();
+  46   3          }
+  47   2          dat=dat<<1;
+  48   2        }
+  49   1      }
+  50          
+  51          void Send_2811_24bits(uint8_t RData, uint8_t GData, uint8_t BData) {
+  52   1        //G--R--B
+  53   1        Send_8bits(GData*(ring_brightness_duty1/255));
+  54   1        Send_8bits(RData*(ring_brightness_duty1/255));
+C51 COMPILER V9.54   LED1                                                                  06/12/2018 17:36:40 PAGE 2   
+
+  55   1        Send_8bits(BData*(ring_brightness_duty1/255));
+  56   1       }
+  57          
+  58           void rst() {
+  59   1        LED_RING_DATE_PIN_LOW();
+  60   1        //HAL_Delay (1);
+  61   1      }
+  62          
+  63          void ring_set_color_all_same(uint8_t r, uint8_t g, uint8_t b) {
+  64   1        uint8_t i;
+  65   1        for(i=0;i<numLEDs;i++) {
+  66   2          Send_2811_24bits(r,g,b);
+  67   2        }
+  68   1        
+  69   1      }
+  70          
+  71          void ring_display_clear(){
+  72   1        uint8_t i;
+  73   1        for( i=0; i<numLEDs; i++) {
+  74   2          Send_2811_24bits(0,0,0);
+  75   2        }
+  76   1      }
+  77          
+  78          void led_out(UINT16 flag)     //关掉的灯的数量
+  79          {
+  80   1          for(temp1 = 0;temp1<flag;temp1++)
+  81   1          {
+  82   2            ring_display_clear();
+  83   2          }
+  84   1      }
+  85          
+  86          void led_open(UINT16 flag,uint8_t r, uint8_t g, uint8_t b)//打开灯数量
+  87          {
+  88   1          for(temp1 = 0;temp1<flag;temp1++)
+  89   1          {
+  90   2              ring_set_color_all_same(r,g,b);
+  91   2          }
+  92   1      
+  93   1      }
+  94          
+  95          
+  96          
+  97          void led1(void)
+  98          {
+  99   1          
+ 100   1          Set_All_GPIO_Quasi_Mode;
+ 101   1        
+ 102   1          while(1)
+ 103   1          {
+ 104   2      #if 0     
+                      ring_set_color_all_same(a+6,b+20,c);            //单个灯，测试用
+                      Timer1_Delay10ms(1);  
+              #endif  
+ 108   2      
+ 109   2      #if 0
+                    for(wait_wifi = 0;wait_wifi<33;wait_wifi++)
+                    {
+              //            ring_display_clear();
+              //            ring_display_clear();
+              //            ring_set_color_all_same(a, b, c);
+                            ring_set_color_all_same(a, b, c); 
+                    }
+C51 COMPILER V9.54   LED1                                                                  06/12/2018 17:36:40 PAGE 3   
+
+                    
+                    Timer1_Delay10ms(50); 
+                    for(wait_wifi = 0;wait_wifi<33;wait_wifi++)
+                    {
+                          Timer1_Delay10ms(5);
+                          for(p=0;p<wait_wifi;p++)
+                          {
+                          ring_set_color_all_same(a+5,b+6,c+15);
+                          }
+                    }
+              
+                        Timer1_Delay10ms(50);                                   //旋转灯第一种颜色    
+              
+              #endif      
+ 131   2            
+ 132   2      #if 0
+                    for(wait_wifi = 0;wait_wifi<16;wait_wifi++)
+                    {
+                          ring_display_clear();
+                          ring_set_color_all_same(a,b,c);     
+                    }
+                          Timer1_Delay10ms(20);                                   //旋转灯第一种颜色
+                    for(wait_wifi = 0;wait_wifi<16;wait_wifi++)
+                    {
+                          ring_set_color_all_same(a,b,c);
+                          ring_display_clear();     
+                    }
+                          Timer1_Delay10ms(20); 
+              
+              #endif      
+ 147   2            
+ 148   2      #if 0
+              
+                    for(wait_wifi = 0;wait_wifi<33;wait_wifi++)
+                    {
+              
+                          ring_set_color_all_same(0x23,0xa2,0xf5);      
+                    }
+                          
+                    for(wait_wifi = 0;wait_wifi<33;wait_wifi++)
+                    {
+                          Timer1_Delay10ms(5);
+                          for(p=0;p<wait_wifi;p++)
+                          {
+                          ring_set_color_all_same(0xff,0xa1,0x23);
+                          }
+                    }
+                    Timer1_Delay10ms(5);
+                    
+              #endif      
+ 167   2            
+ 168   2          }
+ 169   1        
+ 170   1      }
+ 171          
+ 172          
+ 173          /************************ (C) COPYRIGHT OAZON ******************END OF FILE****/
+ 174          
+ 175          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+C51 COMPILER V9.54   LED1                                                                  06/12/2018 17:36:40 PAGE 4   
+
+   CODE SIZE        =    241    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      3    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       9
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

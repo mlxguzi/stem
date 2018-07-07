@@ -1,0 +1,10 @@
+"I2C_M.obj",
+".\Common.obj",
+".\Delay.obj",
+".\WS281X.obj",
+".\STARTUP.obj" 
+TO "I2C_M" 
+PRINT(".\LST\I2C_M.m51") RAMSIZE(256) 
+DISABLEWARNING (16) 
+CODE( 0X0000-0X47FF )
+XDATA( 0X0000-0X02FF )

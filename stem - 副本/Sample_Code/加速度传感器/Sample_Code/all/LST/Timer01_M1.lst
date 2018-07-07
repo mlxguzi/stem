@@ -1,0 +1,39 @@
+C51 COMPILER V9.54   TIMER01_M1                                                            06/15/2018 17:48:29 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE TIMER01_M1
+OBJECT MODULE PLACED IN .\Timer01_M1.obj
+COMPILER INVOKED BY: E:\keil\C51\BIN\C51.EXE ..\..\Common\Timer01_M1.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\..\Common;..\.
+                    -.\Include) DEFINE(FOSC_160000) DEBUG OBJECTEXTEND PRINT(.\LST\Timer01_M1.lst) TABS(2) OBJECT(.\Timer01_M1.obj)
+
+line level    source
+
+   1          #include "N76E003.h"
+   2          #include "Common.h"
+   3          #include "Delay.h"
+   4          #include "SFR_Macro.h"
+   5          #include "Function_define.h"
+   6          #include "Timer01_M1.h"
+*** ERROR C231 IN LINE 1 OF \learn\hebox\Include\Common.h: 'BIT': redefinition
+*** ERROR C231 IN LINE 2 OF \learn\hebox\Include\Common.h: 'UINT8': redefinition
+*** ERROR C231 IN LINE 3 OF \learn\hebox\Include\Common.h: 'UINT16': redefinition
+*** ERROR C141 IN LINE 4 OF \learn\hebox\Include\Common.h: syntax error near 'UINT32'
+*** ERROR C231 IN LINE 6 OF \learn\hebox\Include\Common.h: 'uint8_t': redefinition
+*** ERROR C231 IN LINE 7 OF \learn\hebox\Include\Common.h: 'uint16_t': redefinition
+*** ERROR C141 IN LINE 8 OF \learn\hebox\Include\Common.h: syntax error near 'uint32_t'
+   7          
+   8          void time_init(void)
+   9          {
+  10   1          TIMER0_MODE1_ENABLE;  
+  11   1          u8TH0_Tmp = (65536-TH0_INIT)/256;
+  12   1          u8TL0_Tmp = (65536-TL0_INIT)%256; 
+  13   1        
+  14   1          TH0 = u8TH0_Tmp;
+  15   1          TL0 = u8TL0_Tmp;
+  16   1        
+  17   1          set_ET0;                                    //enable Timer0 interrupt
+  18   1          set_EA;                                     //enable interrupts
+  19   1      }
+  20          
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  7 ERROR(S)

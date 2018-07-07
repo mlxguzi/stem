@@ -1,0 +1,250 @@
+C51 COMPILER V9.54   GPIO                                                                  06/01/2018 15:04:35 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE GPIO
+OBJECT MODULE PLACED IN .\Output\GPIO.obj
+COMPILER INVOKED BY: E:\keil\C51\BIN\C51.EXE Code\GPIO.C OPTIMIZE(8,SPEED) BROWSE INCDIR(..\..\Include) DEFINE(FOSC_1600
+                    -00) DEBUG OBJECTEXTEND PRINT(.\LST\GPIO.lst) TABS(2) OBJECT(.\Output\GPIO.obj)
+
+line level    source
+
+   1          /*--------------------------------------------------------------------------------------------------------
+             --*/
+   2          /*                                                                                                        
+             - */
+   3          /* Copyright(c) 2017 Nuvoton Technology Corp. All rights reserved.                                        
+             - */
+   4          /*                                                                                                        
+             - */
+   5          /*--------------------------------------------------------------------------------------------------------
+             --*/
+   6          
+   7          //********************************************************************************************************
+             -***
+   8          //  Website: http://www.nuvoton.com
+   9          //  E-Mail : MicroC-8bit@nuvoton.com
+  10          //  Date   : Jan/21/2017
+  11          //********************************************************************************************************
+             -***
+  12          
+  13          //********************************************************************************************************
+             -***
+  14          //  File Function: N76E003 GPIO demo code
+  15          //********************************************************************************************************
+             -***
+  16          #include "N76E003.h"
+  17          #include "SFR_Macro.h"
+  18          #include "Function_define.h"
+  19          #include "Common.h"
+  20          #include "Delay.h"
+  21          
+  22          //*****************  The Following is in define in Fucntion_define.h  ***************************
+  23          //****** Always include Function_define.h call the define you want, detail see main(void) *******
+  24          //***********************************************************************************************
+  25          #if 0
+              ////------------------- Define Port as Quasi mode  -------------------
+              //#define P00_Quasi_Mode        P0M1&=~SET_BIT0;P0M2&=~SET_BIT0
+              //#define P01_Quasi_Mode        P0M1&=~SET_BIT1;P0M2&=~SET_BIT1
+              //#define P02_Quasi_Mode        P0M1&=~SET_BIT2;P0M2&=~SET_BIT2
+              //#define P03_Quasi_Mode        P0M1&=~SET_BIT3;P0M2&=~SET_BIT3
+              //#define P04_Quasi_Mode        P0M1&=~SET_BIT4;P0M2&=~SET_BIT4
+              //#define P05_Quasi_Mode        P0M1&=~SET_BIT5;P0M2&=~SET_BIT5
+              //#define P06_Quasi_Mode        P0M1&=~SET_BIT6;P0M2&=~SET_BIT6
+              //#define P07_Quasi_Mode        P0M1&=~SET_BIT7;P0M2&=~SET_BIT7
+              //#define P10_Quasi_Mode        P1M1&=~SET_BIT0;P1M2&=~SET_BIT0
+              //#define P11_Quasi_Mode        P1M1&=~SET_BIT1;P1M2&=~SET_BIT1
+              //#define P12_Quasi_Mode        P1M1&=~SET_BIT2;P1M2&=~SET_BIT2
+              //#define P13_Quasi_Mode        P1M1&=~SET_BIT3;P1M2&=~SET_BIT3
+              //#define P14_Quasi_Mode        P1M1&=~SET_BIT4;P1M2&=~SET_BIT4
+              //#define P15_Quasi_Mode        P1M1&=~SET_BIT5;P1M2&=~SET_BIT5
+              //#define P16_Quasi_Mode        P1M1&=~SET_BIT6;P1M2&=~SET_BIT6
+              //#define P17_Quasi_Mode        P1M1&=~SET_BIT7;P1M2&=~SET_BIT7
+              //#define P20_Quasi_Mode        P2M1&=~SET_BIT0;P2M2&=~SET_BIT0
+              //#define P30_Quasi_Mode        P3M1&=~SET_BIT0;P3M2&=~SET_BIT0
+              ////------------------- Define Port as Push Pull mode -------------------
+C51 COMPILER V9.54   GPIO                                                                  06/01/2018 15:04:35 PAGE 2   
+
+              //#define P00_PushPull_Mode     P0M1|=SET_BIT0;P0M2&=~SET_BIT0
+              //#define P01_PushPull_Mode     P0M1|=SET_BIT1;P0M2&=~SET_BIT1
+              //#define P02_PushPull_Mode     P0M1&=~SET_BIT2;P0M2|=SET_BIT2
+              //#define P03_PushPull_Mode     P0M1&=~SET_BIT3;P0M2|=SET_BIT3
+              //#define P04_PushPull_Mode     P0M1&=~SET_BIT4;P0M2|=SET_BIT4
+              //#define P05_PushPull_Mode     P0M1&=~SET_BIT5;P0M2|=SET_BIT5
+              //#define P06_PushPull_Mode     P0M1&=~SET_BIT6;P0M2|=SET_BIT6
+              //#define P07_PushPull_Mode     P0M1&=~SET_BIT7;P0M2|=SET_BIT7
+              //#define P10_PushPull_Mode     P1M1&=~SET_BIT0;P1M2|=SET_BIT0
+              //#define P11_PushPull_Mode     P1M1&=~SET_BIT1;P1M2|=SET_BIT1
+              //#define P12_PushPull_Mode     P1M1&=~SET_BIT2;P1M2|=SET_BIT2
+              //#define P13_PushPull_Mode     P1M1&=~SET_BIT3;P1M2|=SET_BIT3
+              //#define P14_PushPull_Mode     P1M1&=~SET_BIT4;P1M2|=SET_BIT4
+              //#define P15_PushPull_Mode     P1M1&=~SET_BIT5;P1M2|=SET_BIT5
+              //#define P16_PushPull_Mode     P1M1&=~SET_BIT6;P1M2|=SET_BIT6
+              //#define P17_PushPull_Mode     P1M1&=~SET_BIT7;P1M2|=SET_BIT7
+              //#define P20_PushPull_Mode     P2M1&=~SET_BIT0;P2M2|=SET_BIT0
+              //#define P30_PushPull_Mode     P3M1&=~SET_BIT0;P3M2|=SET_BIT0
+              ////------------------- Define Port as Input Only mode -------------------
+              //#define P00_Input_Mode        P0M1|=SET_BIT0;P0M2&=~SET_BIT0
+              //#define P01_Input_Mode        P0M1|=SET_BIT1;P0M2&=~SET_BIT1
+              //#define P02_Input_Mode        P0M1|=SET_BIT2;P0M2&=~SET_BIT2
+              //#define P03_Input_Mode        P0M1|=SET_BIT3;P0M2&=~SET_BIT3
+              //#define P04_Input_Mode        P0M1|=SET_BIT4;P0M2&=~SET_BIT4
+              //#define P05_Input_Mode        P0M1|=SET_BIT5;P0M2&=~SET_BIT5
+              //#define P06_Input_Mode        P0M1|=SET_BIT6;P0M2&=~SET_BIT6
+              //#define P07_Input_Mode        P0M1|=SET_BIT7;P0M2&=~SET_BIT7
+              //#define P10_Input_Mode        P1M1|=SET_BIT0;P1M2&=~SET_BIT0
+              //#define P11_Input_Mode        P1M1|=SET_BIT1;P1M2&=~SET_BIT1
+              //#define P12_Input_Mode        P1M1|=SET_BIT2;P1M2&=~SET_BIT2
+              //#define P13_Input_Mode        P1M1|=SET_BIT3;P1M2&=~SET_BIT3
+              //#define P14_Input_Mode        P1M1|=SET_BIT4;P1M2&=~SET_BIT4
+              //#define P15_Input_Mode        P1M1|=SET_BIT5;P1M2&=~SET_BIT5
+              //#define P16_Input_Mode        P1M1|=SET_BIT6;P1M2&=~SET_BIT6
+              //#define P17_Input_Mode        P1M1|=SET_BIT7;P1M2&=~SET_BIT7
+              //#define P20_Input_Mode        P2M1|=SET_BIT0;P2M2&=~SET_BIT0
+              //#define P30_Input_Mode        P3M1|=SET_BIT0;P3M2&=~SET_BIT0
+              ////-------------------Define Port as Open Drain mode -------------------
+              //#define P00_OpenDrain_Mode    P0M1|=SET_BIT0;P0M2|=SET_BIT0
+              //#define P01_OpenDrain_Mode    P0M1|=SET_BIT1;P0M2|=SET_BIT1
+              //#define P02_OpenDrain_Mode    P0M1|=SET_BIT2;P0M2|=SET_BIT2
+              //#define P03_OpenDrain_Mode    P0M1|=SET_BIT3;P0M2|=SET_BIT3
+              //#define P04_OpenDrain_Mode    P0M1|=SET_BIT4;P0M2|=SET_BIT4
+              //#define P05_OpenDrain_Mode    P0M1|=SET_BIT5;P0M2|=SET_BIT5
+              //#define P06_OpenDrain_Mode    P0M1|=SET_BIT6;P0M2|=SET_BIT6
+              //#define P07_OpenDrain_Mode    P0M1|=SET_BIT7;P0M2|=SET_BIT7
+              //#define P10_OpenDrain_Mode    P1M1|=SET_BIT0;P1M2|=SET_BIT0
+              //#define P11_OpenDrain_Mode    P1M1|=SET_BIT1;P1M2|=SET_BIT1
+              //#define P12_OpenDrain_Mode    P1M1|=SET_BIT2;P1M2|=SET_BIT2
+              //#define P13_OpenDrain_Mode    P1M1|=SET_BIT3;P1M2|=SET_BIT3
+              //#define P14_OpenDrain_Mode    P1M1|=SET_BIT4;P1M2|=SET_BIT4
+              //#define P15_OpenDrain_Mode    P1M1|=SET_BIT5;P1M2|=SET_BIT5
+              //#define P16_OpenDrain_Mode    P1M1|=SET_BIT6;P1M2|=SET_BIT6
+              //#define P17_OpenDrain_Mode    P1M1|=SET_BIT7;P1M2|=SET_BIT7
+              //#define P20_OpenDrain_Mode    P2M1|=SET_BIT0;P2M2|=SET_BIT0
+              //#define P30_OpenDrain_Mode    P3M1|=SET_BIT0;P3M2|=SET_BIT0
+              ////--------- Define all port as quasi mode ---------
+              //#define Set_All_GPIO_Quasi_Mode     P0M1=0;P0M1=0;P1M1=0;P1M2=0;P2M1=0;P2M2=0;P3M1=0;P3M2=0
+              #endif
+ 105          
+ 106          /*------------------------------------------------
+ 107          The main C function.  Program execution starts
+C51 COMPILER V9.54   GPIO                                                                  06/01/2018 15:04:35 PAGE 3   
+
+ 108          here after stack initialization.
+ 109          ------------------------------------------------*/
+ 110          
+ 111          void main (void) 
+ 112          {
+ 113   1      //  unsigned char temp;
+ 114   1        Set_All_GPIO_Quasi_Mode;          // Define in Function_define.h
+ 115   1        
+ 116   1      #if 0
+                InitialUART0_Timer3(115200);
+              //  set_CLOEN;                      // For clock out from P1.1
+                
+                while(1)
+                {
+                  clr_GPIO1;                      // Tiny board GPIO1 LED define
+                  P0 = 0x00;
+                  P2 = 0x00;
+                  P1 = 0x00;
+                  Timer0_Delay1ms(30);
+                  P0 = 0xff;
+                  P2 = 0xff;
+                  P1 = 0xff;
+                  set_GPIO1;  
+              
+                  Send_Data_To_UART0(0x35);         //UART0 send ascii "U"
+                  temp = 0x31 + P0;
+                  Send_Data_To_UART0(temp);
+                  temp = 0x31 + P1;
+                  Send_Data_To_UART0(temp);
+              
+                  Timer0_Delay1ms(30);
+                }
+              #endif
+ 141   1      
+ 142   1      #if 1
+ 143   1      
+ 144   1      /////////////////////////////////////////
+ 145   1          InitialUART0_Timer1(9600);
+ 146   1        
+ 147   1      /*-------------------------------------------------
+ 148   1        ADC trig initial setting
+ 149   1        Please modify #if value to open diffent type
+ 150   1      --------------------------------------------------*/
+ 151   1      #if 1
+ 152   1      // By PWM falling edge
+ 153   1          PWM0_P12_OUTPUT_ENABLE;       
+ 154   1          Enable_ADC_AIN0;                            // Enable AIN0 P1.7 as ADC input
+ 155   1          PWM0_FALLINGEDGE_TRIG_ADC;  
+ 156   1      #endif    
+ 157   1      #if 0
+              // By PWM rising edge
+                  PWM0_P12_OUTPUT_ENABLE;       
+                  Enable_ADC_AIN0;                            // Enable AIN0 P1.7 as ADC input
+                  PWM0_RISINGEDGE_TRIG_ADC;
+              #endif    
+ 163   1      #if 0
+              // By PWM central point
+                  PWM0_P12_OUTPUT_ENABLE;       
+                  Enable_ADC_AIN0;                            // Enable AIN0 P1.7 as ADC input
+                  PWM_CENTER_TYPE;
+                  PWM0_CENTRAL_TRIG_ADC;  
+              #endif  
+C51 COMPILER V9.54   GPIO                                                                  06/01/2018 15:04:35 PAGE 4   
+
+ 170   1      #if 0
+              // By PWM end point
+                  PWM0_P12_OUTPUT_ENABLE;       
+                  Enable_ADC_AIN0;                            // Enable AIN0 P1.7 as ADC input
+                  PWM_CENTER_TYPE;
+                  PWM0_END_TRIG_ADC;
+              #endif  
+ 177   1        
+ 178   1      // Setting PWM value
+ 179   1          PWMPH = 0x07;                               //Setting PWM value          
+ 180   1          PWMPL = 0xFF;
+ 181   1          PWM0H = 0x02;
+ 182   1          PWM0L = 0xFF;
+ 183   1          set_LOAD;                                   // PWM run
+ 184   1          set_PWMRUN;
+ 185   1      // Setting ADC
+ 186   1          set_EADC;                                   // Enable ADC interrupt (if use interrupt)
+ 187   1          EA = 1; 
+ 188   1          while(1);
+ 189   1      
+ 190   1        
+ 191   1      ////////////////////////////////////////  
+ 192   1        while(1)
+ 193   1        {
+ 194   2          clr_GPIO1;                      // Tiny board GPIO1 LED define
+ 195   2          P0 = 0x00;
+ 196   2          P2 = 0x00;
+ 197   2          P1 = 0x00;
+ 198   2          Timer0_Delay1ms(30);
+ 199   2          P0 = 0xff;
+ 200   2          P2 = 0xff;
+ 201   2          P1 = 0xff;
+ 202   2          set_GPIO1;  
+ 203   2          Timer0_Delay1ms(30);
+ 204   2        }
+ 205   1      #endif
+ 206   1        
+ 207   1      
+ 208   1      }
+ 209          
+ 210          
+ 211          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     80    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

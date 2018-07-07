@@ -1,0 +1,109 @@
+C51 COMPILER V9.54   RGB                                                                   06/25/2018 13:45:28 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE RGB
+OBJECT MODULE PLACED IN .\Output\rgb.obj
+COMPILER INVOKED BY: E:\keil\C51\BIN\C51.EXE ..\..\Common\rgb.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\..\Common;..\..\Inclu
+                    -de) DEFINE(FOSC_160000) DEBUG OBJECTEXTEND PRINT(.\LST\rgb.lst) TABS(2) OBJECT(.\Output\rgb.obj)
+
+line level    source
+
+   1          #include "buzzer.h"
+   2          #include "SFR_Macro.h"
+   3          #include "Function_define.h"
+   4          #include "N76E003.h"
+   5          #include "Common.h"
+   6          
+   7          void pwm_set(UINT8 rh,UINT8 rl,UINT8 gh,UINT8 gl,UINT8 bh,UINT8 bl)
+   8          {
+   9   1          
+  10   1          PWM2H = bh;           
+  11   1          PWM2L = bl;
+  12   1      /**********************************************************************
+  13   1          set_SFRPAGE和clr_SFRPAGE是为了可以设置PWM4和PWM5
+  14   1      ***********************************************************************/  
+  15   1            set_SFRPAGE;  
+  16   1          PWM4H = gh;           
+  17   1          PWM4L = gl;
+  18   1        
+  19   1          PWM5H = rh;           
+  20   1          PWM5L = rl;
+  21   1            clr_SFRPAGE;
+  22   1      /**********************************************************************
+  23   1          LOAD寄存器置1，PWM才能载入新周期和占空比，更改结束后会硬件置0
+  24   1      ***********************************************************************/    
+  25   1            set_LOAD;
+  26   1      }
+  27          void pwm_rgb_init()
+  28          {
+  29   1      /**********************************************************************
+  30   1        p03 r                      p01 g                            p10 b
+  31   1      ***********************************************************************/
+  32   1          PWM2_P10_OUTPUT_ENABLE;     
+  33   1          PWM4_P01_OUTPUT_ENABLE;
+  34   1          PWM5_P03_OUTPUT_ENABLE;
+  35   1        
+  36   1          PWM_IMDEPENDENT_MODE;
+  37   1          PWM_CLOCK_DIV_8;
+  38   1          PWMPH = 0x07;
+  39   1          PWMPL = 0xCF;
+  40   1      /**********************************************************************
+  41   1        PWM frequency = Fpwm/((PWMPH,PWMPL) + 1) <Fpwm = Fsys/PWM_CLOCK_DIV> 
+  42   1                      = (16MHz/8)/(0x7CF + 1)
+  43   1                      = 1KHz (1ms)
+  44   1      ***********************************************************************/  
+  45   1          PWM2H = 0x03;           
+  46   1          PWM2L = 0xCF;
+  47   1          
+  48   1          set_SFRPAGE;            //PWM4 and PWM5 duty seting is in SFP page 1
+  49   1          PWM4H = 0x03;           
+  50   1          PWM4L = 0xcf;
+  51   1          PWM5H = 0x03;           
+  52   1          PWM5L = 0xcf;
+  53   1          clr_SFRPAGE;                      
+  54   1      //-------- PWM start run--------------
+C51 COMPILER V9.54   RGB                                                                   06/25/2018 13:45:28 PAGE 2   
+
+  55   1          set_LOAD;
+  56   1          set_PWMRUN;
+  57   1      
+  58   1      }
+  59          void rgb_off()
+  60          {
+  61   1          pwm_set(0x00,0x00,0x00,0x00,0x00,0x00);
+  62   1      }
+  63          void rgb_on()
+  64          {
+  65   1          pwm_set(0x03,0x01,0x01,0xaa,0x06,0xd1);
+  66   1      }
+  67          
+  68          
+  69          
+  70          
+  71          
+  72          
+  73          
+  74          
+  75          
+  76          
+  77          
+  78          
+  79          
+  80          
+  81          
+  82          
+  83          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    172    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       6
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

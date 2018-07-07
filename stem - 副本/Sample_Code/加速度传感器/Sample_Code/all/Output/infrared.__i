@@ -1,0 +1,1 @@
+"..\..\Common\infrared.c" OPTIMIZE (8,SPEED) BROWSE INCDIR(..\..\Common;..\..\Include) DEFINE (FOSC_160000) DEBUG OBJECTEXTEND PRINT(.\LST\infrared.lst) TABS (2) OBJECT(.\Output\infrared.obj)

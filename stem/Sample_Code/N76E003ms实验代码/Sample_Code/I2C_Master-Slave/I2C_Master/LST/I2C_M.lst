@@ -1,0 +1,396 @@
+C51 COMPILER V9.54   I2C_M                                                                 06/13/2018 15:56:15 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE I2C_M
+OBJECT MODULE PLACED IN .\Output\I2C_M.obj
+COMPILER INVOKED BY: E:\keil\C51\BIN\C51.EXE Code\I2C_M.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\..\..\Common;..\..\..\Inclu
+                    -de) DEFINE(FOSC_160000) DEBUG OBJECTEXTEND PRINT(.\LST\I2C_M.lst) TABS(2) OBJECT(.\Output\I2C_M.obj)
+
+line level    source
+
+   1          /*--------------------------------------------------------------------------------------------------------
+             --*/
+   2          /*                                                                                                        
+             - */
+   3          /* Copyright(c) 2017 Nuvoton Technology Corp. All rights reserved.                                        
+             - */
+   4          /*                                                                                                        
+             - */
+   5          /*--------------------------------------------------------------------------------------------------------
+             --*/
+   6          
+   7          //********************************************************************************************************
+             -***
+   8          //  Website: http://www.nuvoton.com
+   9          //  E-Mail : MicroC-8bit@nuvoton.com
+  10          //  Date   : Jan/21/2017
+  11          //********************************************************************************************************
+             -***
+  12          
+  13          //********************************************************************************************************
+             -***
+  14          //  File Function: N76E003 I2C master mode demo code, the Slave address = 0xA4
+  15          //
+  16          //   ____________            _____________ 
+  17          //  |            |   SDA    |             |
+  18          //  |            |<-------->|             |
+  19          //  |            |          |             |
+  20          //  |N76E003(M)  |          | N76E003(S)  |
+  21          //  |(I2C_Master)|          | (I2C_Slave) |
+  22          //  |            |   SCL    |             |
+  23          //  |            |--------->|             |
+  24          //  |____________|          |_____________|
+  25          //
+  26          //  The protocol of I2C is same the "24LC64"
+  27          //********************************************************************************************************
+             -***
+  28          #include "N76E003.h"
+  29          #include "SFR_Macro.h"
+  30          #include "Function_define.h"
+  31          #include "Common.h"
+  32          #include "Delay.h"
+  33          
+  34          //********************************************************************************************************
+             -***
+  35          #define I2C_CLOCK               13
+  36          #define EEPROM_SLA              0x68
+  37          #define EEPROM_WR               0
+  38          #define EEPROM_RD               1
+  39          #define ERROR_CODE              0x78
+  40          #define PAGE_SIZE               6
+  41          
+  42          UINT8 data_slave[7] = {0x01,0x11,0x02,0xAA,0x03,0x51,0x52};
+  43          
+  44          //========================================================================================================
+C51 COMPILER V9.54   I2C_M                                                                 06/13/2018 15:56:15 PAGE 2   
+
+  45          void Init_I2C(void)
+  46          {
+  47   1      //    /* Set I2C clock rate */
+  48   1          I2CLK = I2C_CLOCK; 
+  49   1      
+  50   1          /* Enable I2C */
+  51   1          set_I2CEN;                                   
+  52   1      }
+  53          //========================================================================================================
+  54          void I2C_Error(void)
+  55          {
+  56   1      //    P3 = I2STAT;
+  57   1      //    P3 = ERROR_CODE;
+  58   1          while (1);    
+  59   1      }
+  60          
+  61          bit Wait_SI(void)
+  62          {
+  63   1          uint32_t count = 0;
+  64   1          while(!SI)
+  65   1          {
+  66   2              if((I2STAT==0x00))
+  67   2              {
+  68   3                  set_STO;
+  69   3                  return 0;
+  70   3              }
+  71   2              count++;
+  72   2              
+  73   2              if(count > 100000)
+  74   2              {
+  75   3                  set_STO;
+  76   3                  return 0;
+  77   3              } 
+  78   2          }
+  79   1          
+  80   1          return 1;
+  81   1      }
+  82          
+  83          bit Wait_STO(void)
+  84          {
+  85   1          uint32_t count = 0;
+  86   1          
+  87   1          while(STO)
+  88   1          {
+  89   2              count++;
+  90   2              
+  91   2              if(count > 100000)
+  92   2              {
+  93   3                  return 0;
+  94   3              }
+  95   2          }
+  96   1          
+  97   1          return 1;
+  98   1      }
+  99          
+ 100          
+ 101          //========================================================================================================
+ 102          void I2C_Process(UINT8 u8DAT)
+ 103          {
+ 104   1          UINT32 u32Count;
+ 105   1      
+ 106   1      //--------------------------------------------------------------------------------------------
+C51 COMPILER V9.54   I2C_M                                                                 06/13/2018 15:56:15 PAGE 3   
+
+ 107   1      //----  Page Write----------------------------------------------------------------------------
+ 108   1      //--------------------------------------------------------------------------------------------
+ 109   1          /* Step1 */
+ 110   1          set_STA;                                    /* Send Start bit to I2C EEPROM */
+ 111   1          clr_SI;
+ 112   1          //while (!SI);                                //Check SI set or not
+ 113   1          if(Wait_SI() == 0)
+ 114   1          {
+ 115   2              return;
+ 116   2          }
+ 117   1          if (I2STAT != 0x08)                         //Check status value after every step
+ 118   1              return;
+ 119   1          
+ 120   1          /* Step2 */
+ 121   1          clr_STA;                                    //STA=0
+ 122   1          I2DAT = (EEPROM_SLA | EEPROM_WR);
+ 123   1          clr_SI;
+ 124   1          //while (!SI);                                //Check SI set or not
+ 125   1          if(Wait_SI() == 0)
+ 126   1          {
+ 127   2              return;
+ 128   2          }
+ 129   1          if (I2STAT != 0x18)              
+ 130   1              return;
+ 131   1      
+ 132   1      #if 0   
+                    /* Step4 */
+                  I2DAT = 0x00;                               //address low for I2C EEPROM
+                  clr_SI;
+                  //while (!SI);                                //Check SI set or not
+                  if(Wait_SI() == 0)
+                  {
+                      return;
+                  }
+                  if (I2STAT != 0x28)              
+                      return;
+              #endif
+ 144   1      //////////////从机编号
+ 145   1          /* Step3 */
+ 146   1          I2DAT = 0x01;                               //address high for I2C EEPROM
+ 147   1          clr_SI;
+ 148   1          //while (!SI);                                //Check SI set or not
+ 149   1          if(Wait_SI() == 0)
+ 150   1          {
+ 151   2              return;
+ 152   2          }
+ 153   1          if (I2STAT != 0x28)              
+ 154   1              return;
+ 155   1                          
+ 156   1          /* Step4 */
+ 157   1          I2DAT = 0x11;                               //address low for I2C EEPROM
+ 158   1          clr_SI;
+ 159   1          //while (!SI);                                //Check SI set or not
+ 160   1          if(Wait_SI() == 0)
+ 161   1          {
+ 162   2              return;
+ 163   2          }
+ 164   1          if (I2STAT != 0x28)              
+ 165   1              return;
+ 166   1      ///////////////从机状态
+ 167   1          /* Step5 */
+ 168   1          I2DAT = 0x02;                               //address low for I2C EEPROM
+C51 COMPILER V9.54   I2C_M                                                                 06/13/2018 15:56:15 PAGE 4   
+
+ 169   1          clr_SI;
+ 170   1          //while (!SI);                                //Check SI set or not
+ 171   1          if(Wait_SI() == 0)
+ 172   1          {
+ 173   2              return;
+ 174   2          }
+ 175   1          if (I2STAT != 0x28)              
+ 176   1              return;
+ 177   1          
+ 178   1              /* Step5 */
+ 179   1          I2DAT = 0xAA;                               //address low for I2C EEPROM
+ 180   1          clr_SI;
+ 181   1          //while (!SI);                                //Check SI set or not
+ 182   1          if(Wait_SI() == 0)
+ 183   1          {
+ 184   2              return;
+ 185   2          }
+ 186   1          if (I2STAT != 0x28)              
+ 187   1              return;
+ 188   1      /////////////////数据 
+ 189   1          I2DAT = 0x03;                               //address low for I2C EEPROM
+ 190   1          clr_SI;
+ 191   1          //while (!SI);                                //Check SI set or not
+ 192   1          if(Wait_SI() == 0)
+ 193   1          {
+ 194   2              return;
+ 195   2          }
+ 196   1          if (I2STAT != 0x28)              
+ 197   1              return;
+ 198   1          
+ 199   1          I2DAT = 0x51;                               //address low for I2C EEPROM
+ 200   1          clr_SI;
+ 201   1          //while (!SI);                                //Check SI set or not
+ 202   1          if(Wait_SI() == 0)
+ 203   1          {
+ 204   2              return;
+ 205   2          }
+ 206   1          if (I2STAT != 0x28)              
+ 207   1              return;
+ 208   1          
+ 209   1          I2DAT = 0x52;                               //address low for I2C EEPROM
+ 210   1          clr_SI;
+ 211   1          //while (!SI);                                //Check SI set or not
+ 212   1          if(Wait_SI() == 0)
+ 213   1          {
+ 214   2              return;
+ 215   2          }
+ 216   1          if (I2STAT != 0x28)              
+ 217   1              return;
+ 218   1      
+ 219   1      //--------------------------------------------------------------------------------------------
+ 220   1      //----  Waitting the ready for I2C write------------------------------------------------------
+ 221   1      //--------------------------------------------------------------------------------------------
+ 222   1          /* Step6 */
+ 223   1          do{
+ 224   2              set_STO;
+ 225   2              clr_SI;
+ 226   2              
+ 227   2              set_STA;                                //Check if no ACK is returned by EEPROM, it is under timed
+             --write cycle
+ 228   2              clr_SI;
+ 229   2              //while (!SI);                                //Check SI set or not
+C51 COMPILER V9.54   I2C_M                                                                 06/13/2018 15:56:15 PAGE 5   
+
+ 230   2              if(Wait_SI() == 0)
+ 231   2              {
+ 232   3                  return;
+ 233   3              }
+ 234   2              if (I2STAT != 0x08)                     //Check status value after every step
+ 235   2                  return;
+ 236   2      
+ 237   2              clr_STA;
+ 238   2              I2DAT = (EEPROM_SLA | EEPROM_WR);
+ 239   2              clr_SI;
+ 240   2              //while (!SI);                                //Check SI set or not
+ 241   2              if(Wait_SI() == 0)
+ 242   2              {
+ 243   3                  return;
+ 244   3              }
+ 245   2          }while (I2STAT != 0x18);
+ 246   1          
+ 247   1          /* Step7 */
+ 248   1          set_STO;
+ 249   1          clr_SI;
+ 250   1          //while (STO);                                /* Check STOP signal */
+ 251   1          if(Wait_STO() == 0)
+ 252   1          {
+ 253   2              return;
+ 254   2          }
+ 255   1      //--------------------------------------------------------------------------------------------
+ 256   1      //----  Page Read ----------------------------------------------------------------------------
+ 257   1      //--------------------------------------------------------------------------------------------
+ 258   1      
+ 259   1      
+ 260   1          /* Step12 */
+ 261   1          /* Repeated START */
+ 262   1          set_STA;                       
+ 263   1          clr_SI;
+ 264   1          //while (!SI);                                //Check SI set or not
+ 265   1          if(Wait_SI() == 0)
+ 266   1          {
+ 267   2              return;
+ 268   2          }
+ 269   1          if (I2STAT != 0x08)                         //Check status value after every step
+ 270   1              return;
+ 271   1          
+ 272   1          /* Step13 */
+ 273   1          clr_STA;                                    //STA needs to be cleared after START codition is generate
+             -d
+ 274   1          I2DAT = (EEPROM_SLA | EEPROM_RD);
+ 275   1          clr_SI;
+ 276   1          //while (!SI);                                //Check SI set or not
+ 277   1          if(Wait_SI() == 0)
+ 278   1          {
+ 279   2              return;
+ 280   2          }
+ 281   1          if (I2STAT != 0x40)              
+ 282   1              return;
+ 283   1          
+ 284   1          /* Step14 */
+ 285   1      #if 1 
+ 286   1          for (u32Count = 0; u32Count <PAGE_SIZE; u32Count++)
+ 287   1          {
+ 288   2              set_AA;
+ 289   2              clr_SI;        
+ 290   2              //while (!SI);                                //Check SI set or not
+C51 COMPILER V9.54   I2C_M                                                                 06/13/2018 15:56:15 PAGE 6   
+
+ 291   2              if(Wait_SI() == 0)
+ 292   2              {
+ 293   3                  return;
+ 294   3              }
+ 295   2      
+ 296   2              if (I2STAT != 0x50)              
+ 297   2                  return;
+ 298   2              
+ 299   2              if (I2DAT != data_slave[u32Count])             
+ 300   2                  return;
+ 301   2              
+ 302   2      //       u8DAT = ~u8DAT; 
+ 303   2          } 
+ 304   1       #endif  
+ 305   1          /* Step15 */
+ 306   1          clr_AA;
+ 307   1          clr_SI;
+ 308   1          //while (!SI);                                //Check SI set or not
+ 309   1          if(Wait_SI() == 0)
+ 310   1          {
+ 311   2              return;
+ 312   2          }
+ 313   1          if (I2STAT != 0x58)              
+ 314   1              return;
+ 315   1      
+ 316   1          /* Step16 */
+ 317   1          set_STO;
+ 318   1          clr_SI;
+ 319   1          //while (STO);                                /* Check STOP signal */
+ 320   1          if(Wait_STO() == 0)
+ 321   1          {
+ 322   2              return;
+ 323   2          }
+ 324   1          
+ 325   1          printf("OK \n");
+ 326   1      }
+*** WARNING C280 IN LINE 102 OF Code\I2C_M.c: 'u8DAT': unreferenced local variable
+ 327          //========================================================================================================
+ 328          void main(void)
+ 329          {    
+ 330   1          Set_All_GPIO_Quasi_Mode;  
+ 331   1          InitialUART0_Timer1(115200); 
+ 332   1          Init_I2C();                                 //initial I2C circuit
+ 333   1      
+ 334   1        
+ 335   1          while(1)
+ 336   1          {
+ 337   2              if(data_slave[0] == 0x01)
+ 338   2              {
+ 339   3        //        clr_GPIO1;
+ 340   3              }
+ 341   2              I2C_Process(0x55);                          /* I2C Master will send 0x55,0xAA,.... to slave */
+ 342   2              clr_I2CEN; 
+ 343   2              set_I2CEN; 
+ 344   2              Timer0_Delay1ms(100);
+ 345   2          }
+ 346   1      }
+ 347          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    578    ----
+C51 COMPILER V9.54   I2C_M                                                                 06/13/2018 15:56:15 PAGE 7   
+
+   CONSTANT SIZE    =      5    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      7      13
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)

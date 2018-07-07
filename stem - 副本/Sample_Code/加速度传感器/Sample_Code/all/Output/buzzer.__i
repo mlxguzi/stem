@@ -1,0 +1,1 @@
+"..\..\Common\buzzer.c" OPTIMIZE (8,SPEED) BROWSE INCDIR(..\..\Common;..\..\Include) DEFINE (FOSC_160000) DEBUG OBJECTEXTEND PRINT(.\LST\buzzer.lst) TABS (2) OBJECT(.\Output\buzzer.obj)

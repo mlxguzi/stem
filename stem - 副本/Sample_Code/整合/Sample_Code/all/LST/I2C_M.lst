@@ -1,0 +1,76 @@
+C51 COMPILER V9.54   I2C_M                                                                 06/27/2018 18:22:36 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE I2C_M
+OBJECT MODULE PLACED IN .\Output\I2C_M.obj
+COMPILER INVOKED BY: E:\keil\C51\BIN\C51.EXE Code\I2C_M.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\..\Common;..\..\Include) DE
+                    -FINE(FOSC_160000) DEBUG OBJECTEXTEND PRINT(.\LST\I2C_M.lst) TABS(2) OBJECT(.\Output\I2C_M.obj)
+
+line level    source
+
+   1          #include "N76E003.h"
+   2          #include "WS281X.h"
+   3          #include "Delay.h"
+   4          #include "SFR_Macro.h"
+   5          #include "Function_define.h"
+   6          #include "intrins.h"
+   7          #include "WS281X.h"
+   8          #include "string.h"
+   9          #include "buzzer.h"
+  10          #include "infrared.h"
+  11          
+  12          #define TH0_INIT        1300 
+  13          #define TL0_INIT        1300          //¶¨Ê±Æ÷
+  14          
+  15          U8 u8TH0_Tmp,u8TL0_Tmp;
+  16          U8 buzzer_blink = 0;
+  17          
+  18          void main(void)
+  19          {
+  20   1        Set_All_GPIO_Quasi_Mode; 
+  21   1      //  track_search_init();
+  22   1        buzzer_pwm_init();
+  23   1      
+  24   1      #if 0 
+                  TIMER0_MODE1_ENABLE;  
+                  u8TH0_Tmp = (65536-TH0_INIT)/256;
+                  u8TL0_Tmp = (65536-TL0_INIT)%256; 
+                
+                  TH0 = u8TH0_Tmp;
+                  TL0 = u8TL0_Tmp;
+                
+                  set_ET0;                                    //enable Timer0 interrupt
+                  set_EA;                                     //enable interrupts
+                
+              #endif
+  36   1      while(1)
+  37   1      {
+  38   2          
+  39   2      
+  40   2          
+  41   2      }
+  42   1      
+  43   1          
+  44   1      }
+  45          
+  46          
+  47          /************************ (C) COPYRIGHT OAZON ******************END OF FILE****/
+  48          
+  49          
+*** WARNING C316 IN LINE 49 OF Code\I2C_M.c: unterminated conditionals
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     18    ----
+C51 COMPILER V9.54   I2C_M                                                                 06/27/2018 18:22:36 PAGE 2   
+
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      3    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)

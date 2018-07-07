@@ -1,0 +1,1 @@
+"..\..\Common\key.c" OPTIMIZE (8,SPEED) BROWSE INCDIR(..\..\Common;..\..\Include) DEFINE (FOSC_160000) DEBUG OBJECTEXTEND PRINT(.\LST\key.lst) TABS (2) OBJECT(.\Output\key.obj)

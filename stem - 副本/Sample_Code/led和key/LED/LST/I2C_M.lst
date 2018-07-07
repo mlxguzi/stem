@@ -1,0 +1,305 @@
+C51 COMPILER V9.54   I2C_M                                                                 06/20/2018 10:17:30 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE I2C_M
+OBJECT MODULE PLACED IN .\Output\I2C_M.obj
+COMPILER INVOKED BY: E:\keil\C51\BIN\C51.EXE Code\I2C_M.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\..\..\Common;..\..\..\Inclu
+                    -de) DEFINE(FOSC_160000) DEBUG OBJECTEXTEND PRINT(.\LST\I2C_M.lst) TABS(2) OBJECT(.\Output\I2C_M.obj)
+
+line level    source
+
+   1          
+   2          #include "N76E003.h"
+   3          #include "Common.h"
+   4          #include "Delay.h"
+   5          #include "SFR_Macro.h"
+   6          #include "Function_define.h"
+   7          #include "intrins.h"
+   8          
+   9          
+  10          /* Private variables ---------------------------------------------------------*/
+  11          #define numLEDs 1
+  12          sbit LED_input = P0^7 ;
+  13          
+  14          #define LED_RING_DATE_PIN_LOW() (LED_input = 0) 
+  15          #define LED_RING_DATE_PIN_HIGH() (LED_input = 1) 
+  16          
+  17          UINT16 jj = 0xff;
+  18          UINT16 temp;
+  19          uint8_t ring_brightness_duty = 255;//0-255
+  20          UINT8  wait_wifi = 0;
+  21          
+  22          void H1_nop_800ns(){
+  23   1        _nop_();_nop_();_nop_();
+  24   1      
+  25   1      }
+  26          
+  27          void H0_nop_400ns(){
+  28   1        _nop_();
+  29   1      }
+  30          
+  31          
+  32          void Din_1(void) {
+  33   1        LED_RING_DATE_PIN_HIGH();
+  34   1        H1_nop_800ns();
+  35   1        LED_RING_DATE_PIN_LOW();
+  36   1        //L1_nop_450ns();
+  37   1      }
+  38          
+  39          void Din_0(void) {
+  40   1        LED_RING_DATE_PIN_HIGH();
+  41   1      //  H0_nop_400ns();
+  42   1        _nop_();_nop_(); //延时400ns
+  43   1        LED_RING_DATE_PIN_LOW();
+  44   1        //L0_nop_850ns();
+  45   1      }
+  46          
+  47          void Send_8bits(uint8_t dat) {
+  48   1        uint8_t i;
+  49   1        for(i=0;i<8;i++) {
+  50   2          if(dat & 0x80) {//1,for "1",H:0.8us,L:0.45us;
+  51   3            Din_1();
+  52   3          } else {    //0,for "0",H:0.4us,L:0.85us
+  53   3            Din_0();
+  54   3          }
+C51 COMPILER V9.54   I2C_M                                                                 06/20/2018 10:17:30 PAGE 2   
+
+  55   2          dat=dat<<1;
+  56   2        }
+  57   1      }
+  58          
+  59          void Send_2811_24bits(uint8_t RData, uint8_t GData, uint8_t BData) {
+  60   1        //G--R--B
+  61   1        Send_8bits(GData*(ring_brightness_duty/255));
+  62   1        Send_8bits(RData*(ring_brightness_duty/255));
+  63   1        Send_8bits(BData*(ring_brightness_duty/255));
+  64   1       }
+  65          
+  66           void rst() {
+  67   1        LED_RING_DATE_PIN_LOW();
+  68   1        //HAL_Delay (1);
+  69   1      }
+  70          
+  71          void ring_set_color_all_same(uint8_t r, uint8_t g, uint8_t b) {
+  72   1        uint8_t i;
+  73   1        for(i=0;i<numLEDs;i++) {
+  74   2          Send_2811_24bits(r,g,b);
+  75   2        }
+  76   1        
+  77   1      }
+  78          
+  79          void ring_display_clear(){
+  80   1        uint8_t i;
+  81   1        for( i=0; i<numLEDs; i++) {
+  82   2          Send_2811_24bits(0,0,0);
+  83   2        }
+  84   1      }
+  85          
+  86          void led_out(UINT16 flag)     //关掉的灯的数量
+  87          {
+  88   1          for(temp = 0;temp<flag;temp++)
+  89   1          {
+  90   2            ring_display_clear();
+  91   2          }
+  92   1      }
+  93          
+  94          void led_open(UINT16 flag,uint8_t r, uint8_t g, uint8_t b)//打开灯数量
+  95          {
+  96   1          for(temp = 0;temp<flag;temp++)
+  97   1          {
+  98   2              ring_set_color_all_same(r,g,b);
+  99   2          }
+ 100   1      
+ 101   1      }
+ 102          void PWM_ISR (void) interrupt 13
+ 103          {
+ 104   1          PWM1H = 0x01;             //PWM0 high duty = 1/2 PWM period
+ 105   1          PWM1L = 0xFF;   
+ 106   1          clr_PWMF;               // clear PWM interrupt flag
+ 107   1      
+ 108   1      //    P12 = ~P12;             // GPIO1 show PWM INT
+ 109   1      }
+ 110          void main(void)
+ 111          {
+ 112   1          
+ 113   1          Set_All_GPIO_Quasi_Mode;
+ 114   1      #if 0 
+                  PWM1_P11_OUTPUT_ENABLE;
+                  PWM_INT_PWM1;
+C51 COMPILER V9.54   I2C_M                                                                 06/20/2018 10:17:30 PAGE 3   
+
+                  PWM_FALLING_INT;
+              #endif  
+ 119   1      //    ring_set_color_all_same(0x51, 0x11, 0xf1);
+ 120   1          
+ 121   1      #if 1
+ 122   1          PWM_CLOCK_DIV_8;
+ 123   1          PWMPH = 0x03;             //Setting PWM period
+ 124   1          PWMPL = 0xFF;
+ 125   1          PWM1H = 0x01;             //PWM0 high duty = 1/2 PWM period
+ 126   1          PWM1L = 0xFF;   
+ 127   1          
+ 128   1          set_EPWM;                 //Enable PWM interrupt
+ 129   1          set_EA;                 
+ 130   1          set_LOAD;
+ 131   1          set_PWMRUN;
+ 132   1      //    ring_set_color_all_same(0x55, 0x55, 0x55);
+ 133   1      
+ 134   1      #endif
+ 135   1      #if 1     
+ 136   1            ring_set_color_all_same(0x51, 0x11, 0xf1);
+ 137   1            Timer1_Delay10ms(10);
+ 138   1            ring_display_clear();
+ 139   1            ring_set_color_all_same(0x51, 0x11, 0xf1);
+ 140   1            Timer1_Delay10ms(10);
+ 141   1            ring_display_clear();
+ 142   1            ring_display_clear();
+ 143   1            ring_set_color_all_same(0x51, 0x11, 0xf1);
+ 144   1            Timer1_Delay10ms(10);
+ 145   1            ring_display_clear();
+ 146   1            ring_display_clear();
+ 147   1            ring_display_clear();
+ 148   1      //      ring_set_color_all_same(0x51, 0x11, 0xf1);
+ 149   1            Timer1_Delay10ms(10);
+ 150   1      #endif
+ 151   1        
+ 152   1      #if 0 
+                    ring_set_color_all_same(0x51, 0x11, 0xf1);
+                    led_out(31);
+                    ring_set_color_all_same(0x51, 0x11, 0xf1);
+                    Timer1_Delay10ms(10); 
+              
+                    led_out(1);
+                    ring_set_color_all_same(0x51, 0x11, 0xf1);
+                    led_out(29);
+                    ring_set_color_all_same(0x51, 0x11, 0xf1);
+                    led_out(1);
+                    
+                    Timer1_Delay10ms(10); 
+                    led_out(2);
+                    ring_set_color_all_same(0x51, 0x11, 0xf1);
+                    led_out(27);
+                    ring_set_color_all_same(0x51, 0x11, 0xf1);
+                    led_out(2);
+                    Timer1_Delay10ms(10);
+              #endif    
+ 172   1      
+ 173   1      #if 1
+ 174   1            ring_set_color_all_same(0x51, 0x11, 0xf1);
+ 175   1            led_out(31);
+ 176   1            ring_set_color_all_same(0x51, 0x11, 0xf1);
+ 177   1      //      Timer1_Delay10ms(10); 
+ 178   1            
+C51 COMPILER V9.54   I2C_M                                                                 06/20/2018 10:17:30 PAGE 4   
+
+ 179   1            for(wait_wifi = 0;wait_wifi<15;wait_wifi++)
+ 180   1            {
+ 181   2                  Timer1_Delay10ms(10);                     //两边向中间靠拢
+ 182   2                  led_out(wait_wifi+1);
+ 183   2                  ring_set_color_all_same(0x51, 0x11, 0xf1);
+ 184   2                  led_out(29-wait_wifi*2);
+ 185   2                  ring_set_color_all_same(0x51, 0x11, 0xf1);
+ 186   2                  led_out(wait_wifi+1);
+ 187   2                  Timer1_Delay10ms(10);
+ 188   2            }
+ 189   1      #endif    
+ 190   1      
+ 191   1      #if 0
+                    for(wait_wifi = 0; wait_wifi< 28;wait_wifi++)//n个灯一起跑
+                    {
+                          Timer1_Delay10ms(5);  
+                          led_out(wait_wifi);
+                          led_open(5,0x51,0x11,0xf1);
+                          led_out(27-wait_wifi);
+                          Timer1_Delay10ms(5);  
+                    
+                    }
+              #endif      
+ 202   1      
+ 203   1      
+ 204   1      #if 0 
+                    for(wait_wifi = 0;wait_wifi<16;wait_wifi++)
+                    {
+                          ring_display_clear();
+                          ring_set_color_all_same(0x51, 0x11, 0xf1);      
+                    }
+                          Timer1_Delay10ms(20);                                   //旋转灯第一种颜色
+                    for(wait_wifi = 0;wait_wifi<16;wait_wifi++)
+                    {
+                          ring_set_color_all_same(0x51, 0x11, 0xf1);
+                          ring_display_clear();     
+                    }
+                          Timer1_Delay10ms(20); 
+              /////////////////////////////////////////// 
+                          for(wait_wifi = 0;wait_wifi<16;wait_wifi++)
+                          {
+                                ring_display_clear();
+                                ring_set_color_all_same(0xf1, 0xa8, 0xba);      
+                          }
+                                Timer1_Delay10ms(20);                                   //旋转灯第二种颜色
+                          for(wait_wifi = 0;wait_wifi<16;wait_wifi++)
+                          {
+                                ring_set_color_all_same(0xf1, 0xa8, 0xba);
+                                ring_display_clear();     
+                          }
+                                Timer1_Delay10ms(20); 
+              /////////////////////////////////////////// 
+                          for(wait_wifi = 0;wait_wifi<16;wait_wifi++)
+                          {
+                                ring_display_clear();
+                                ring_set_color_all_same(0xa3, 0xff, 0xda);      
+                          }
+                                Timer1_Delay10ms(20);                                   //旋转灯第3种颜色
+                          for(wait_wifi = 0;wait_wifi<16;wait_wifi++)
+                          {
+                                ring_set_color_all_same(0xa3, 0xff, 0xda);
+                                ring_display_clear();     
+C51 COMPILER V9.54   I2C_M                                                                 06/20/2018 10:17:30 PAGE 5   
+
+                          }
+                                Timer1_Delay10ms(20); 
+              #endif      
+ 244   1                  
+ 245   1      #if 0
+              
+              //////////////////////////////////////////////////////////
+                          for(wait_wifi=0; wait_wifi< 6;wait_wifi++)
+                          {
+                              Timer1_Delay10ms(20);
+                                                led_out(7-wait_wifi);
+                                  ring_set_color_all_same(0xf1, 0xa8, 0xba);
+                                                led_out(7-wait_wifi);
+                                  ring_set_color_all_same(0xf1, 0xa8, 0xba);
+                                                led_out(7-wait_wifi);
+                                  ring_set_color_all_same(0xf1, 0xa8, 0xba);
+                                                led_out(7-wait_wifi);
+                                  ring_set_color_all_same(0xf1, 0xa8, 0xba);
+                              Timer1_Delay10ms(20);           
+                          }
+                          
+                          
+              #endif                        
+ 264   1              
+ 265   1      #if 0
+                          
+              #endif            
+ 268   1      }
+ 269          
+ 270          
+ 271          /************************ (C) COPYRIGHT OAZON ******************END OF FILE****/
+ 272          
+ 273          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    413    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      6       7
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

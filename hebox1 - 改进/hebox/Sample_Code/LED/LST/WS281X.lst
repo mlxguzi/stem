@@ -1,0 +1,182 @@
+C51 COMPILER V9.54   WS281X                                                                06/20/2018 18:06:17 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE WS281X
+OBJECT MODULE PLACED IN .\Output\WS281X.obj
+COMPILER INVOKED BY: E:\keil\C51\BIN\C51.EXE ..\..\Common\WS281X.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\..\Common;..\..\In
+                    -clude) DEFINE(FOSC_160000) DEBUG OBJECTEXTEND PRINT(.\LST\WS281X.lst) TABS(2) OBJECT(.\Output\WS281X.obj)
+
+line level    source
+
+   1          /********************************** (C) COPYRIGHT *******************************
+   2          * File Name          : WS281X.C                     * 
+   3          * Author             : OAZON                                                   *
+   4          * Version            : V1.0                                                     *
+   5          * Date               : 2018/06/15                                               *
+   6          * Description        : 
+   7          ********************************************************************************/
+   8          
+   9          #include <string.h>
+  10          #include <intrins.h> 
+  11          #include <stdio.h>
+  12          #include "N76E003.h"
+  13          
+  14          #include "WS281X.h"
+  15          
+  16          
+  17          /****************************硬件参数调整*********************************/
+  18          
+  19          void H1_nop_800ns(){
+  20   1        _nop_();_nop_();_nop_();
+  21   1      }
+  22          
+  23          void H0_nop_400ns(){
+  24   1        _nop_();
+  25   1      }
+  26          
+  27          /*******************************************************************************
+  28          * Function Name  : Din_1(void)
+  29          * Description    : 1bit 信号1
+  30          * Input          : None
+  31          * Output         : None
+  32          * Return         : None
+  33          *******************************************************************************/
+  34          
+  35          void Din_1(void) {
+  36   1        WS_IO_HIGH();
+  37   1              H1_nop_800ns();
+  38   1        WS_IO_LOW();
+  39   1        //L1_nop_450ns();
+  40   1      }
+  41          
+  42          /*******************************************************************************
+  43          * Function Name  : Din_0(void)
+  44          * Description    : 1bit 信号0
+  45          * Input          : None
+  46          * Output         : None
+  47          * Return         : None
+  48          *******************************************************************************/
+  49          
+  50          void Din_0(void) {
+  51   1        WS_IO_HIGH();
+  52   1          _nop_();_nop_();
+  53   1        WS_IO_LOW();
+  54   1        //L0_nop_850ns();
+C51 COMPILER V9.54   WS281X                                                                06/20/2018 18:06:17 PAGE 2   
+
+  55   1      }
+  56          
+  57          /*******************************************************************************
+  58          * Function Name  : WS_rst()
+  59          * Description    : 刷新灯信号
+  60          * Input          : 数据
+  61          * Output         : None
+  62          * Return         : None
+  63          *******************************************************************************/
+  64          
+  65          void WS_rst(void) 
+  66          {
+  67   1        WS_IO_LOW();
+  68   1        //HAL_Delay (1);
+  69   1      }
+  70          
+  71          /*******************************************************************************
+  72          * Function Name  : Send_WS_8bits(U8 Data) 
+  73          * Description    : 刷新一颗灯一组8bit信号的数据
+  74          * Input          : 数据
+  75          * Output         : None
+  76          * Return         : None
+  77          *******************************************************************************/
+  78          void Send_WS_8bits(U8 dat)
+  79          {
+  80   1        U8 i;
+  81   1        for(i=0;i<8;i++) 
+  82   1        {
+  83   2          if(dat & 0x80) {//1,for "1",H:0.8us,L:0.45us;
+  84   3            Din_1();
+  85   3      
+  86   3          } 
+  87   2          else {    //0,for "0",H:0.4us,L:0.85us
+  88   3            Din_0();
+  89   3          }
+  90   2          dat=dat<<1;
+  91   2        }
+  92   1      }
+  93          
+  94          /*******************************************************************************
+  95          * Function Name  : Send_WS_24bits(U8 RData,U8 GData,U8 BData)  
+  96          * Description    : 刷新一颗灯的数据
+  97          * Input          : RGB数据
+  98          * Output         : None
+  99          * Return         : None
+ 100          *******************************************************************************/
+ 101          void Send_WS_24bits(U8 RData,U8 GData,U8 BData) 
+ 102          {
+ 103   1        //G--R--B
+ 104   1        Send_WS_8bits(GData*(ring_brightness_duty/255));
+ 105   1        Send_WS_8bits(RData*(ring_brightness_duty/255));
+ 106   1        Send_WS_8bits(BData*(ring_brightness_duty/255));
+ 107   1      
+ 108   1      }
+ 109          
+ 110          /*******************************************************************************
+ 111          * Function Name  : WS_frame_asyn(UINT8* dat) 
+ 112          * Description    : 刷新一组灯的数据，每颗灯有不同的显示数据
+ 113          * Input          : 数据地址
+ 114          * Output         : None
+ 115          * Return         : 运行状态
+ 116          *******************************************************************************/
+C51 COMPILER V9.54   WS281X                                                                06/20/2018 18:06:17 PAGE 3   
+
+ 117          U8 WS_frame_asyn(U8* Ptr) 
+ 118          {
+ 119   1        U8 i;
+ 120   1        EA = 0; 
+ 121   1        for(i=0;i<WS_LED_NUM;i++) 
+ 122   1        {
+ 123   2          Send_WS_24bits(*(Ptr+3*i),*(Ptr+3*i+1),*(Ptr+3*i+2));
+ 124   2        }
+ 125   1        EA = 1;
+ 126   1        return i; 
+ 127   1      }
+ 128          /*******************************************************************************
+ 129          * Function Name  : WS_frame_sync(UINT8* dat) 
+ 130          * Description    : 刷新一组灯的数据，每颗灯有相同的显示数据
+ 131          * Input          : 数据地址
+ 132          * Output         : None
+ 133          * Return         : 运行状态
+ 134          *******************************************************************************/
+ 135          U8 WS_frame_sync(U8* Ptr) 
+ 136          {
+ 137   1        U8 i;
+ 138   1        EA = 0; 
+ 139   1        for(i=0;i<WS_LED_NUM;i++) 
+ 140   1        {
+ 141   2          Send_WS_24bits(*Ptr,*(Ptr+1),*(Ptr+2));
+ 142   2        }
+ 143   1        EA = 1; 
+ 144   1        return i;
+ 145   1      }
+ 146          
+ 147          
+ 148          /************************ (C) COPYRIGHT OAZON ******************END OF FILE****/
+ 149          void ring_display_clear(){
+ 150   1        uint8_t i;
+ 151   1        for( i=0; i<33; i++) {
+ 152   2          Send_WS_24bits(0,0,0);
+ 153   2        }
+ 154   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    207    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       8
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
